@@ -59,3 +59,9 @@
   checks the samplers behave (no stalls, no oscillation, tracks skill).
 - Tests: `tests/test_samplers.py` (core rules, tau=0.1 back-off, memory/expiry, bandit math, adapter
   laziness/probes/reshuffle/score threshold, mock regressions). 34/34 pass (`pytest -q tests`, CPU job).
+
+### A4 — `eval/passk.py`
+- `pass_at_k(n,c,k) = 1 - C(n-c,k)/C(n,k)` (math.comb), plus `informative_fraction(p,G)`.
+- `tests/test_passk.py`: brute-force subset enumeration, exact formula, pass@1 = c/n, edges (k=n, n-c<k),
+  monotone in k and c, Monte-Carlo unbiasedness vs 1-(1-p)^k, invalid input, CLAUDE.md G=8 table. All pass.
+- Note: upstream's `aggregate_graph_pass_results.py` uses "any of the first k samples" — unbiased only at k=n.
