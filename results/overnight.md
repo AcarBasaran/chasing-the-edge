@@ -72,3 +72,34 @@
   Keyed by `uid` = sha1(problem‖question). Upstream and our re-score agree on 100% of samples
   (asserted in `eval/export_base_per_problem.py`).
 - The headline reference: test_hard has 204/204 problems at c_eval = 0 (all 0/128).
+
+### B7 — per-level base table (`results/base_by_level_summary.csv`) and paper check
+| L | p eval | p train | pass@128 | gen p95 tok | correct p95 tok | gold p95 tok | paper p@1 / p@128 |
+|---|---|---|---|---|---|---|---|
+| 2 | 0.9971 | 0.9960 | 1.000 | 198 | 198 | 196 |  |
+| 3 | 0.9963 | 0.9927 | 1.000 | 229 | 229 | 228 |  |
+| 4 | 0.9825 | 0.9817 | 1.000 | 247 | 246 | 245 |  |
+| 5 | 0.9616 | 0.9528 | 1.000 | 270 | 263 | 265 |  |
+| 6 | 0.9732 | 0.9723 | 1.000 | 289 | 287 | 287 |  |
+| 7 | 0.8423 | 0.8416 | 1.000 | 320 | 315 | 317 |  |
+| 8 | 0.7897 | 0.7851 | 0.995 | 347 | 334 | 341 |  |
+| 9 | 0.7459 | 0.7449 | 0.995 | 370 | 358 | 365 |  |
+| 10 | 0.5864 | 0.5862 | 0.955 | 392 | 370 | 388 |  |
+| 11 | 0.4888 | 0.4888 | 0.920 | 412 | 393 | 414 | 49.0 / 91.0 |
+| 12 | 0.2378 | 0.2378 | 0.675 | 406 | 403 | 427 | 27.0 / 65.0 |
+| 13 | 0.0036 | 0.0036 | 0.070 | 402 | 439 | 449 | 1.0 / 7.0 |
+| 14 | 0.0000 | 0.0000 | 0.005 | 410 | 435 | 492 | 0.0 / 0.0 |
+| 15 | 0.0000 | 0.0000 | 0.000 | 399 | — | 507 |  |
+| 16 | 0.0000 | 0.0000 | 0.000 | 403 | — | 527 |  |
+| 17 | 0.0000 | 0.0000 | 0.000 | 416 | — | 570 |  |
+| 18 | 0.0000 | 0.0000 | 0.000 | 411 | — | 586 |  |
+| 19 | 0.0000 | 0.0000 | 0.000 | 406 | — | 603 |  |
+| 20 | 0.0000 | 0.0000 | 0.000 | 410 | — | 631 |  |
+
+- **Matches the paper** (bands: op2-10 pass@1 87.5 vs ≈87, pass@128 99.4 vs ≈99.5; op11-14 18.3/41.8 vs
+  ≈19/42; op15-20 0/0 vs 0/0; per-op 11–14 all within ~3pp). Proceeding to section C.
+- p_train = p_eval for op ≥ 11; up to 0.9pp lower at op ≤ 10 (extra-node penalty).
+- **Length finding.** The model's own generations saturate at p95 ≈ 400–415 tokens for every op ≥ 11
+  (correct-solution max ever seen: 463). That is the length of the longest pretraining-range (op ≤ 10)
+  gold solutions (~430). Gold op14+ solutions need 490–630 tokens. So the 1024 cap is not the ceiling;
+  a learned length prior is. Worth watching whether RL lengthens outputs — and re-checking the cap then.
