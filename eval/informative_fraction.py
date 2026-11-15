@@ -16,6 +16,10 @@ T=1.0 (= RL rollout temperature, val op9-15, n=64) when results/base_T1.0_per_pr
 
     sbatch --wait slurm/run_cpu.sbatch '$EDGE_PY eval/informative_fraction.py'
 Outputs: results/informative_fraction_by_level.csv, results/informative_fraction_by_level.png
+
+Direct check: the Gate-2 Threshold smoke run logged the ACTUAL fraction of GRPO groups (G=6, T=1.0,
+256 groups) with nonzero reward variance at steps 0-2 (levels 10, 11, 12; <= 2 updates at lr 1e-6,
+i.e. still the base model): results/gate2/threshold_smoke_sampler_log.jsonl. Plotted as crosses.
 """
 
 from __future__ import annotations
@@ -58,7 +62,20 @@ def load(path: Path, temperature: float):
     return rows
 
 
-def plot(rows, out: Path) -> None:
+def measured_grpo(path: Path, max_step: int = 2):
+    """(level, p, informative fraction, groups) at the first steps of the Gate-2 Threshold smoke run."""
+    import json
+    pts = []
+    if path.exists():
+        for line in path.open():
+            d = json.loads(line)
+            if d.get("event") == "step" and d["step"] <= max_step:
+                for L, f in d["informative_frac"].items():
+                    pts.append({"level": int(L), "p": d["p"][L], "frac": f, "groups": d["chosen"][L], "step": d["step"]})
+    return pts
+
+
+def plot(rows, out: Path, measured=()) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -67,9 +84,9 @@ def plot(rows, out: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 4.2), dpi=150, facecolor=SURF)
     ax.set_facecolor(SURF)
     ax.axvspan(BAND[0] - 0.5, BAND[1] + 0.5, color="#e6e5e0", lw=0, zorder=0)
-    ax.text(12.5, 1.04, "paper's fixed band (11-14)", ha="center", va="bottom", color=INK2, fontsize=8)
-    series = [(0.7, BLUE, "T=0.7 (eval protocol), val op2-20, n=128"),
-              (1.0, ORANGE, "T=1.0 (RL rollout temperature), val op9-15, n=64")]
+    ax.text(12.5, 104, "paper's fixed band (11-14)", ha="center", va="bottom", color=INK2, fontsize=8)
+    series = [(0.7, BLUE, "T=0.7 eval"),
+              (1.0, ORANGE, "T=1.0 RL")]
     for T, col, lab in series:
         rs = [r for r in rows if r["temperature"] == T]
         if not rs:
@@ -78,14 +95,17 @@ def plot(rows, out: Path) -> None:
         ax.plot(x, [100 * r["G6_per_problem"] for r in rs], color=col, lw=2, marker="o", ms=5,
                 label=f"{lab}: per-problem", zorder=3)
         ax.plot(x, [100 * r["G6_from_level_p"] for r in rs], color=col, lw=1.2, ls=(0, (3, 2)),
-                label=f"{lab}: level-mean p in formula", zorder=2)
+                label=f"{lab}: level-mean formula", zorder=2)
+    if measured:
+        ax.plot([m["level"] for m in measured], [100 * m["frac"] for m in measured], ls="none", marker="X",
+                ms=9, color=INK, label="real GRPO groups (smoke, steps 0-2)", zorder=4)
     for r in rows:   # direct labels on the band, T=0.7 per-problem
-        if r["temperature"] == 0.7 and BAND[0] <= r["level"] <= BAND[1]:
+        if r["temperature"] == 1.0 and BAND[0] <= r["level"] <= BAND[1]:
             v = 100 * r["G6_per_problem"]
             ax.annotate(f"{v:.1f}%" if v >= 1 else f"{v:.2f}%", (r["level"], v), textcoords="offset points",
-                        xytext=(6, 4), fontsize=8, color=INK)
+                        xytext=(7, 2), fontsize=8, color=INK)
     ax.set_xlim(1.5, 20.5)
-    ax.set_ylim(-3, 110)
+    ax.set_ylim(-3, 112)
     ax.set_xticks(range(2, 21))
     ax.set_xlabel("difficulty level (op count)", color=INK)
     ax.set_ylabel("GRPO groups with nonzero gradient (%)", color=INK)
@@ -97,7 +117,7 @@ def plot(rows, out: Path) -> None:
         ax.spines[s].set_color("#b5b4ad")
     ax.tick_params(colors=INK2, labelsize=8)
     ax.grid(axis="y", color="#e6e5e0", lw=0.6)
-    ax.legend(fontsize=7, frameon=False, loc="lower left", labelcolor=INK)
+    ax.legend(fontsize=7, frameon=False, loc="upper left", bbox_to_anchor=(0.0, 1.0), labelcolor=INK)
     fig.tight_layout()
     fig.savefig(out, facecolor=SURF)
 
@@ -113,7 +133,11 @@ def main() -> None:
         w.writeheader()
         for r in rows:
             w.writerow({k: (f"{v:.6g}" if isinstance(v, float) else v) for k, v in r.items()})
-    plot(rows, REPO / "results" / "informative_fraction_by_level.png")
+    measured = measured_grpo(REPO / "results" / "gate2" / "threshold_smoke_sampler_log.jsonl")
+    plot(rows, REPO / "results" / "informative_fraction_by_level.png", measured)
+    for m in measured:
+        print(f"measured GRPO step {m['step']}: op{m['level']} p={m['p']:.3f} informative={100*m['frac']:.1f}% "
+              f"of {m['groups']} groups (formula from that p: {100*(1-m['p']**6-(1-m['p'])**6):.1f}%)")
     print("| level | T | p (train reward) | G=6 level-mean | G=6 per-problem | G=8 per-problem | never solved |")
     print("|---|---|---|---|---|---|---|")
     for r in rows:

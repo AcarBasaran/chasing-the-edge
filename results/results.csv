@@ -4,11 +4,11 @@ gate1_base,base,,,easy,pass@8,0.965154
 gate1_base,base,,,easy,pass@128,0.986667
 gate1_base,base,,,easy,p_train_reward,0.853368
 gate1_base,base,,,easy,frac_0_of_128,0.0133333
-gate1_base,base,,,medium,pass@1,0.168672
-gate1_base,base,,,medium,pass@8,0.277921
-gate1_base,base,,,medium,pass@128,0.355
-gate1_base,base,,,medium,p_train_reward,0.168672
-gate1_base,base,,,medium,frac_0_of_128,0.645
+gate1_base,base,,,medium,pass@1,0.175156
+gate1_base,base,,,medium,pass@8,0.295978
+gate1_base,base,,,medium,pass@128,0.38375
+gate1_base,base,,,medium,p_train_reward,0.175137
+gate1_base,base,,,medium,frac_0_of_128,0.61625
 gate1_base,base,,,hard,pass@1,0
 gate1_base,base,,,hard,pass@8,0
 gate1_base,base,,,hard,pass@128,0
@@ -71,5 +71,5 @@ gate1_base,base,,,val_op19,p_train_reward,0
 gate1_base,base,,,val_op20,p_L,0
 gate1_base,base,,,val_op20,pass@128,0
 gate1_base,base,,,val_op20,p_train_reward,0
-gate1_base,base,,,all,generated_tokens,140424120
-gate1_base,base,,,all,gpu_hours_generation,1.737
+gate1_base,base,,,all,generated_tokens,206819325
+gate1_base,base,,,all,gpu_hours_generation,2.371
