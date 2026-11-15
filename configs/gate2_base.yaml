@@ -20,7 +20,7 @@ data:
     - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op13-2k.jsonl
     - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op14-2k.jsonl
   val_files:
-    - ${oc.env:EDGE_REPO}/data/testsets/medium/op11-50.jsonl
+    - ${oc.env:EDGE_REPO}/data/testsets/medium50/op11-50.jsonl
   tokenizer: null
   train_batch_size: 256
   max_prompt_length: 1024

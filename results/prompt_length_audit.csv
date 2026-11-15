@@ -1,0 +1,10 @@
+set,files,consumer,length_filter,rows,A_max,B_max,C_max,A_over,B_over,C_over,A_ne_B,B_ne_C,text_ne,no_solution_marker
+pool_50k,19,"RL training + bandit probes (configs/rl_*.yaml), verl filter OFF",pre-filtered by build_pool.py,946492,1024,1024,1024,0,0,0,0,0,0,0
+track32,19,"RL validation / tracking sweep (configs/rl_*.yaml), verl filter OFF",pre-filtered by build_track_set.py,608,941,941,941,0,0,0,0,0,0,0
+pool_2k,19,Gate-2 smoke training (configs/gate2_*.yaml),verl filter ON at load,38000,1475,1475,1475,139,139,139,0,0,0,0
+testsets/medium50,4,Gate-2 smoke validation file (gate2_base.yaml),verl filter ON at load,200,1040,1040,1040,3,3,3,0,0,0,0
+testsets/easy,9,eval harness (pass@k),none,225,1029,1029,1029,1,1,1,0,0,0,0
+testsets/medium,4,eval harness (pass@k),none,800,1046,1046,1046,5,5,5,0,0,0,0
+testsets/hard,6,eval harness (pass@k),none,204,928,928,928,0,0,0,0,0,0,0
+val (op2-20 x 200),19,"eval harness: Gate-1 p_L table, T=1.0 sweep",none,3800,1192,1192,1192,17,17,17,0,0,0,0
+test/op12-1k,1,eval harness: Gate-1 op12 cross-check,none,1000,1164,1164,1164,3,3,3,0,0,0,0
