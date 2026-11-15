@@ -12,6 +12,11 @@ Columns
   c_train    training reward (upstream verl/reward_fn.py strict) >= 1
   c_answer   answer-only exact match
 Sampling: T=0.7, top-p 1, 1024 new tokens (configs/gate1_base_eval.yaml).
+
+Also exports ANY checkpoint's eval run (same columns) -- used for the released RL
+checkpoint, the T=1.0 base sweep and later our own checkpoints:
+    $EDGE_PY eval/export_base_per_problem.py --run-dir <RUN_DIR> --ckname <model dir basename> \
+        --out results/<name>_per_problem.csv [--val-levels 9-15] [--sets easy medium hard]
 """
 
 from __future__ import annotations
@@ -39,26 +44,33 @@ def uid(row):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=int(os.environ.get("SLURM_CPUS_PER_TASK", 8)))
+    ap.add_argument("--run-dir", type=Path, help="default: gate1 base run_dir from configs/gate1_base_eval.yaml")
+    ap.add_argument("--ckname", default="base")
+    ap.add_argument("--out", type=Path, default=REPO / "results" / "base_per_problem.csv")
+    ap.add_argument("--val-levels", default="2-20", help="e.g. 2-20, 9-15, or 'none'")
+    ap.add_argument("--sets", nargs="*", default=["easy", "medium", "hard"])
     args = ap.parse_args()
     cfg = yaml.safe_load((REPO / "configs" / "gate1_base_eval.yaml").read_text())
-    run_dir = Path(cfg["run_dir"])
+    run_dir = args.run_dir or Path(cfg["run_dir"])
     data = Path(os.environ["EDGE_DATA"])
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(os.environ["EDGE_BASE_MODEL"])
 
-    tasks = [(f"val_op{L}", "val", data / "val" / f"op{L}-200.jsonl") for L in range(2, 21)]
-    tasks += [(f"test_{s}", f"test_{s}", REPO / "data" / "testsets" / s) for s in ("easy", "medium", "hard")]
+    levels = [] if args.val_levels == "none" else range(int(args.val_levels.split("-")[0]),
+                                                         int(args.val_levels.split("-")[-1]) + 1)
+    tasks = [(f"val_op{L}", "val", data / "val" / f"op{L}-200.jsonl") for L in levels]
+    tasks += [(f"test_{s}", f"test_{s}", REPO / "data" / "testsets" / s) for s in args.sets]
     if (run_dir / "gen" / "test_full_op12").exists():
         tasks.append(("test_full_op12", "test_full_op12", data / "test" / "op12-1k.jsonl"))
 
-    out = REPO / "results" / "base_per_problem.csv"
+    out = args.out
     fields = ["split", "uid", "op", "template", "src_line", "n", "c_eval", "c_train", "c_answer"]
     total = 0
     with out.open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         for name, split, root in tasks:
-            rows, per_problem, agree = load_task(run_dir, name, root, tok, args.workers)
+            rows, per_problem, agree = load_task(run_dir, name, root, tok, args.workers, args.ckname)
             assert agree == 1.0, f"{name}: upstream/ours disagreement {agree}"
             for idx in sorted(per_problem):
                 p, r = per_problem[idx], rows[idx]

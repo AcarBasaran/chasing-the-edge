@@ -24,8 +24,9 @@
         13,
         14
       ],
-      "per_level": 50,
-      "total": 200
+      "per_level": 200,
+      "total": 800,
+      "note": "v1 50/level (seed 20261115, now in medium50/) + 150/level (seed 20261116); `in_v1_50` marks v1 rows"
     },
     "hard": {
       "levels": [
@@ -158,8 +159,10 @@
       "overlap_heldout": 0,
       "op_field_mismatch": 0,
       "eligible": 1000,
-      "picked": 50,
-      "set": "medium"
+      "picked": 200,
+      "set": "medium",
+      "v1_picked": 50,
+      "grow_seed": 20261116
     },
     "12": {
       "source_file": "op12-1k.jsonl",
@@ -170,8 +173,10 @@
       "overlap_heldout": 0,
       "op_field_mismatch": 0,
       "eligible": 1000,
-      "picked": 50,
-      "set": "medium"
+      "picked": 200,
+      "set": "medium",
+      "v1_picked": 50,
+      "grow_seed": 20261116
     },
     "13": {
       "source_file": "op13-1k.jsonl",
@@ -182,8 +187,10 @@
       "overlap_heldout": 0,
       "op_field_mismatch": 0,
       "eligible": 1000,
-      "picked": 50,
-      "set": "medium"
+      "picked": 200,
+      "set": "medium",
+      "v1_picked": 50,
+      "grow_seed": 20261116
     },
     "14": {
       "source_file": "op14-1k.jsonl",
@@ -194,8 +201,10 @@
       "overlap_heldout": 0,
       "op_field_mismatch": 0,
       "eligible": 1000,
-      "picked": 50,
-      "set": "medium"
+      "picked": 200,
+      "set": "medium",
+      "v1_picked": 50,
+      "grow_seed": 20261116
     },
     "15": {
       "source_file": "op15-1k.jsonl",
