@@ -131,7 +131,10 @@ val). Ours: val split, 200 problems × 128 samples per level, T=0.7, top-p 1, 10
 | op 14 | pass@1 / @128 | 0.0 / 0.5 | ≈0 / 0 | |
 
 31/32 comparisons within ±6pp. The exception is our 200-problem **medium test set**
-(pass@128 35.5 vs Fig. 3's 43.5), driven entirely by op 12 — OP12_NOTE
+(pass@128 35.5 vs Fig. 3's 43.5), driven entirely by op 12 — its 50 sampled problems give pass@128 0.46 vs 0.675 on val. A cross-check on
+the **full** `test/op12-1k.jsonl` (1000 × 128) gives pass@1 24.2%, pass@128 62.7% — matching val, so the
+splits agree and the 50-problem draw was unlucky (~2.4σ). Consequence: 50 problems/level is too noisy for
+per-level pass@128 on the medium set; consider 100–200/level there (cheap: ~5 GPU-min per 1000 problems).
 
 ## Step 5/6 — see `results/base_model_p_by_level.csv`, `results/base_model_correct_token_lengths_by_level.csv`
 

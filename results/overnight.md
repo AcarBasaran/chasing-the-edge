@@ -44,8 +44,7 @@ primary configs.
 4. Medium test set: 50 problems/level is too noisy for per-level pass@128 (op12 draw was 2.4σ low). OK to grow
    it to 200/level (~20 GPU-min of base eval)?
 5. Threshold smoke used `patience=1`; real runs default to `patience=2`, `start_level` = 10 or 11?
-6. Push the 14 local commits to origin? (I did not push.) Also: your job 1776960 has been pending forever
-   (QoS `ai` not allowed on partition `short`) — probably safe to cancel.
+6. Push the 14 local commits to origin? (I did not push.)
 
 ## Log
 
