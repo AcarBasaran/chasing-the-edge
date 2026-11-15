@@ -141,3 +141,11 @@
 - flash-attn build: first attempt compiled sequentially (ninja not on PATH because `$EDGE_PY` is called
   without activating the env; also picked node's nvcc 12.9) → cancelled at 31 min. Fixed PATH/CUDA_HOME →
   built in 12.6 min. Env now: numpy 2.2.6, flash-attn 2.8.3 (source, sm80), uvloop 0.21.0, `pip check` clean.
+
+### C8 — 20-step fixed-band smoke (job 2022671, A40 ai19, 21.6 min incl. ~1.5 min startup)
+- `results/gate2/fixed_band_smoke_metrics.csv` (parsed by `eval/parse_verl_log.py` → SMOKE OK).
+- Training reward (score/mean) 0.21 → 0.35–0.41 by steps 17–20; every pg_loss/kl_loss finite (40 values);
+  kl_loss rises smoothly to 1.1e-3; grad_norm 0.04–0.07; entropy flat ~0.117; mean response length
+  283 → 318 tokens (no clipping). ~55 s/step at B=256×n=6 on one A40.
+- Throughput note for planning: a full paper-scale run (B=1024, ~200 steps) would be ~4× per step ≈ 3.7 min/step
+  on one A40 → ~12 GPU-h per run. Multi-GPU (n_gpus_per_node) will be needed for 20+ runs.
