@@ -1,0 +1,7 @@
+run_id,method,seed,split,n_problems,criterion,pass@1,pass@8,pass@128,newly_solved,base_unsolved
+base,base,0,test_easy,225,c_eval,85.469,96.515,98.667,,
+base,base,0,test_medium,800,c_eval,17.516,29.598,38.375,,
+base,base,0,test_hard,204,c_eval,0.000,0.000,0.000,,
+released_rl,released_rl,0,test_easy,225,c_eval,85.198,96.397,98.667,0,3
+released_rl,released_rl,0,test_medium,800,c_eval,49.418,69.600,83.875,368,493
+released_rl,released_rl,0,test_hard,204,c_eval,10.811,16.191,23.529,48,204
