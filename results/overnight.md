@@ -65,3 +65,10 @@
 - `tests/test_passk.py`: brute-force subset enumeration, exact formula, pass@1 = c/n, edges (k=n, n-c<k),
   monotone in k and c, Monte-Carlo unbiasedness vs 1-(1-p)^k, invalid input, CLAUDE.md G=8 table. All pass.
 - Note: upstream's `aggregate_graph_pass_results.py` uses "any of the first k samples" — unbiased only at k=n.
+
+### B6 — `results/base_per_problem.csv` (5,429 problems)
+- Every evaluated problem: val op2–20 (3,800), test easy/medium/hard (629), full test/op12 (1,000).
+- Per problem: n=128, `c_eval` (paper criterion), `c_train` (training reward), `c_answer` (answer-only).
+  Keyed by `uid` = sha1(problem‖question). Upstream and our re-score agree on 100% of samples
+  (asserted in `eval/export_base_per_problem.py`).
+- The headline reference: test_hard has 204/204 problems at c_eval = 0 (all 0/128).
