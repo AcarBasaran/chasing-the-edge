@@ -25,6 +25,7 @@ import csv
 import json
 import math
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
@@ -78,24 +79,43 @@ class MockConfig:
     diagnostics: int = 1
 
 
-def make_data_config(mc: MockConfig, method: str, kwargs: dict, probe_every: int):
+def make_data_config(mc: MockConfig, method: str, kwargs: dict, probe_every: int, log_path=None):
     return {"train_batch_size": mc.batch_size,
             "sampler": {"method": method, "method_kwargs": kwargs, "total_steps": mc.steps,
                         "probe_every": probe_every, "probe_prompts_per_level": mc.probe_k,
-                        "seed": mc.seed, "log_path": None}}
+                        "seed": mc.seed, "log_path": str(log_path) if log_path is not None else None}}
 
 
-def simulate(mc: MockConfig, method: str, kwargs: dict, probe_every: int = 0, quiet: bool = True):
+def simulate(mc: MockConfig, method: str, kwargs: dict, probe_every: int = 0, quiet: bool = True,
+             log_path: Path | None = None):
+    """log_path: also write the adapter's sampler_log.jsonl (same format as a real run's), e.g. to
+    test the analysis scripts (eval/plot_sampler_levels.py) without GPU runs."""
     rng = np.random.default_rng(mc.seed)
     pool = FakePool(mc.per_level, mc.problem_sd, rng)
-    sampler = EdgeCurriculumSampler(pool, make_data_config(mc, method, kwargs, probe_every))
+    if log_path is not None:
+        Path(log_path).unlink(missing_ok=True)
+    sampler = EdgeCurriculumSampler(pool, make_data_config(mc, method, kwargs, probe_every, log_path))
     if quiet:
-        sampler._log = lambda rec: None
+        def _file_only(rec, _path=log_path):
+            if _path is not None:
+                rec["time"] = time.time()
+                with open(_path, "a") as fh:
+                    fh.write(json.dumps(rec, default=float) + "\n")
+        sampler._log = _file_only
     it = iter(sampler)
     s = mc.s0
     G = mc.group_size
     traj = []
+    track_path = Path(str(log_path).replace(".jsonl", ".train.log")) if log_path is not None else None
+    if track_path is not None:
+        track_path.unlink(missing_ok=True)
     for step in range(mc.steps):
+        if track_path is not None and step % 10 == 0:   # verl-style tracking sweep: TRUE p of every level
+            kv = " - ".join(f"val-core/difficulty-5B/{L}/acc/mean@8:"
+                            f"{float(sigmoid((s - L - pool.offset[pool.levels == L]) / mc.scale).mean()):.5f}"
+                            for L in np.unique(pool.levels))
+            with track_path.open("a") as fh:
+                fh.write(f"step:{step} - {kv}\n")
         idx = np.array([next(it) for _ in range(mc.batch_size)])
         lv = pool.levels[idx]
         p = sigmoid((s - lv - pool.offset[idx]) / mc.scale)
@@ -116,7 +136,7 @@ def simulate(mc: MockConfig, method: str, kwargs: dict, probe_every: int = 0, qu
     return traj, sampler
 
 
-def run_suite(mc: MockConfig):
+def run_suite(mc: MockConfig, log_dir: Path | None = None):
     suite = {
         "fixed_band": ("fixed_band", {}, 0),
         "uniform_random": ("uniform_random", {}, 0),
@@ -131,7 +151,8 @@ def run_suite(mc: MockConfig):
             "bandit_alpha0.1_spec": ("bandit", {"alpha": 0.1, "epsilon": 0.1}, mc.probe_every),
             "bandit_m10": ("bandit", {"alpha": 0.3, "epsilon": 0.1}, 10),
         })
-    return {name: simulate(mc, m, kw, pe) for name, (m, kw, pe) in suite.items()}
+    return {name: simulate(mc, m, kw, pe, log_path=(log_dir / f"{name}.jsonl") if log_dir else None)
+            for name, (m, kw, pe) in suite.items()}
 
 
 def switches(traj, key="active"):
@@ -228,12 +249,16 @@ def plot(results, mc: MockConfig, out: Path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, default=Path("results/mock"))
+    ap.add_argument("--sampler-logs", type=Path, default=None,
+                    help="also write each method's sampler_log.jsonl into this directory")
     for f in MockConfig.__dataclass_fields__.values():
         ap.add_argument(f"--{f.name.replace('_', '-')}", type=type(f.default), default=f.default)
     args = ap.parse_args()
     mc = MockConfig(**{k: getattr(args, k) for k in MockConfig.__dataclass_fields__})
     args.out.mkdir(parents=True, exist_ok=True)
-    results = run_suite(mc)
+    if args.sampler_logs:
+        args.sampler_logs.mkdir(parents=True, exist_ok=True)
+    results = run_suite(mc, args.sampler_logs)
     rows = summarise(results, mc)
     with (args.out / "mock_summary.csv").open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0]))
