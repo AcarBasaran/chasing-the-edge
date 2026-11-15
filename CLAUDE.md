@@ -49,6 +49,10 @@ HuggingFace org: Interplay-LM-Reasoning
     id2-10_0.475easy_0.475medium_0.05hard
   Load with: AutoModelForCausalLM.from_pretrained(repo_id, subfolder=...)
   We have confirmed the checkpoint downloads and loads.
+  CHOSEN MIXTURE: id2-10_0.2easy_0.3medium_0.5hard/base — the pretraining
+  mix of the paper's main extrapolation experiment (Sec. 3 / Fig. 3; upstream
+  scripts/run_scripts/run_composition_rl.sh). The other three are pretraining
+  ablations. Gate 1 reproduced its base numbers (docs/gate1.md).
 
 - extrapolation_midtrain — mid-trained checkpoints. NOT our starting
   point; the model has already seen medium problems.
@@ -69,7 +73,12 @@ GitHub: Interplay-LM-Reasoning/Interplay-LM-Reasoning
   at an answer node. Number of operations = difficulty level.
 - Each problem is wrapped in a story context (zoo, school). The
   arithmetic is identical across contexts. WE DO NOT VARY CONTEXT.
-- Format: [Problem] ... [Solution] Step 1. ... Step N. ... [Answer] N
+- Format (verified against data + upstream code):
+    <question> {problem} {question} </question> <solution> Define X as t; so t = 4. Define Y as q; so q = 2 * t = 8. </solution> <answer> 8 </answer>
+  The prompt is everything up to and including "<solution>"; generation
+  stops at "</answer>". Difficulty = the `op` field (operation count). op is
+  NOT the number of solution steps: an op-20 problem has ~10 "Define" steps.
+  The dataset `id` field is not unique — key problems by content hash.
 
 ## Critical constraints
 
@@ -78,6 +87,18 @@ GitHub: Interplay-LM-Reasoning/Interplay-LM-Reasoning
   dependency graph. Rewards are stricter than naive answer accuracy, so
   observed p values run lower than you'd expect.
   If rewards look unexpectedly low, SUSPECT THE PARSER BEFORE THE MODEL.
+  (Gate 1 check: gold solutions score 100% through the parser at every level.)
+
+  REWARD vs EVAL MISMATCH. Upstream has two strict criteria:
+    eval  (scripts/score_dependency_graphs.py, paper App. A.4): every gold
+          node right + answer right; EXTRA predicted nodes ALLOWED.
+    train (verl/reward_fn.py::compute_score_with_step_process with
+          answer_weight=1, step_weight=0, zero_on_process_mismatch=True):
+          extra predicted nodes ALSO zero the reward.
+  Samplers MUST use the TRAINING reward (that is what GRPO sees). Report
+  test metrics with the EVAL criterion (that is what the paper reports).
+  The gap is <=0.9pp at op<=10 and zero at op>=11. eval/strict_score.py
+  computes both.
 
 - 1024-TOKEN ANSWER LIMIT. We cap difficulty at 20 steps because of it.
   Danger: if solutions at a level exceed the cap, they truncate, the
@@ -85,6 +106,11 @@ GitHub: Interplay-LM-Reasoning/Interplay-LM-Reasoning
   hard" and backs off. The cap then becomes an invisible ceiling that
   masquerades as the edge. Measure the token-length distribution of
   correct solutions per level on day one.
+  MEASURED (Gate 1): NOT binding for the base model. Correct solutions
+  p95 <= 440 tokens; gold solutions need <= 700 even at op 20; truncation
+  <= 0.008%. Re-check on RL checkpoints (RL may lengthen outputs).
+  Separate trap: some PROMPTS exceed max_prompt_length=1024 and verl's
+  filter_overlong_prompts silently drops them from the pool.
 
 ## What we build
 
@@ -95,7 +121,20 @@ weight sync.
 
 WE CHANGE ONLY THE FIRST ARROW. Everything downstream is untouched.
 
-Do NOT subclass or monkey-patch verl internals. Write a standalone class:
+THE HOOK (already in verl, no patching needed): verl/trainer/main_ppo.py::
+create_rl_sampler loads `data.sampler.class_path` / `data.sampler.class_name`
+from the YAML. The class must subclass
+verl.experimental.dataset.sampler.AbstractCurriculumSampler:
+    __init__(self, data_source, data_config)   # data_source = the train Dataset
+    __iter__ / __len__                          # torch Sampler: yields dataset indices
+    update(self, batch: DataProto)              # called by RayPPOTrainer.fit()
+                                                # after every step, rewards in batch
+Requires data.dataloader_num_workers=0 (else prefetching defeats the sampler).
+Batches are consumed at ray_trainer.py `for batch_dict in self.train_dataloader`.
+
+Do NOT subclass or monkey-patch verl internals (subclassing the published
+AbstractCurriculumSampler interface above is the intended extension point).
+Write a standalone class:
 
     class DifficultySampler:
         def next_level(self) -> int: ...
@@ -187,6 +226,10 @@ GPU time. HIGHEST VALUE THING WE CAN DO.
 Gate 1 (Nov 8): base/ checkpoint loads; reproduce the paper's reported
 base-model numbers. Produce a table of p_L vs L. This tells us where the
 edge actually starts and sets our tau range and level range.
+  DONE 2026-11-15 (results/base_model_p_by_level.csv). Base p_L (T=0.7):
+  op10 .59, op11 .49, op12 .24, op13 .004, op14 .00004, op15-20 exactly 0
+  (0/128 on every problem). The edge is razor-sharp: at step 0 the 11-14
+  band has two informative levels and two dead ones.
 
 Gate 2 (Nov 15): ONE GRPO step runs end-to-end. Not a full run. Expect
 version hell: vLLM/torch/CUDA mismatches, Ray not finding GPUs under
