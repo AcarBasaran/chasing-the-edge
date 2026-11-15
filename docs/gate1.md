@@ -216,3 +216,69 @@ Implication: the op level is a coarse proxy for difficulty. A sampler that picks
 p (e.g. from previous rollouts of the same problem) could raise the informative share well above the ~40% any
 level-based sampler can reach at step 0. **Future work, not built** (decision 2026-11-15); the four
 level-based samplers remain the project.
+
+## Audit: prompt-length filtering and token counting across every problem set (2026-11-15)
+
+**Why:** job 2024783 crashed on a 1,037-token prompt in the tracking set. The training pool had been
+filtered to ≤ 1024 prompt tokens, but the tracking set was built on a separate path without the filter, and
+`rl_base.yaml` turns verl's own filter off (`filter_overlong_prompts: false`, `truncation: error`). This audit
+checks every problem set we build or consume, on every row, with `eval/audit_prompt_sets.py` →
+`results/prompt_length_audit.csv`.
+
+**What was checked.** A dataset row becomes prompt tokens on three code paths:
+
+| path | where | prompt text | counting |
+|---|---|---|---|
+| A: verl length filter | upstream `CustomRLHFDataset.maybe_filter_out_long_prompts`. Our replicas in `samplers/build_pool.py`, `eval/build_track_set.py` and `eval/prompt_filter_stats.py` | `verl/dataset.py::compose_prompt` | `tokenizer((prompt, answer), add_special_tokens=True)["input_ids"][0]` |
+| B: verl loader | `CustomRLHFDataset.__getitem__` → `postprocess_data` (raises above 1024 with `truncation: error`) | same | `tokenizer(prompt, add_special_tokens=False)` |
+| C: eval harness | upstream `scripts/eval_checkpoints.py` → vLLM (`max_model_len` 2048, `max_tokens` 1024) | `compose_text(row).split("<solution>")[0] + "<solution>"` | vLLM default, `add_special_tokens=True` |
+
+Our replicas tokenize the eval-path text (`eval/strict_score.py::compose_prompt`), so they equal A only if the
+two prompt builders produce the same string. That is checked too.
+
+**Result: the counting is consistent everywhere.** On all 990,019 rows across nine sets, A = B = C token
+counts on every row, and the two prompt builders produce byte-identical text on every row. The tokenizer
+adds no special tokens, so `add_special_tokens` makes no difference. One limit and one count hold everywhere.
+
+**Which sets apply the ≤ 1024 filter, and whether they need to:**
+
+| set | rows | max prompt tokens | rows > 1024 | consumer | filter | verdict |
+|---|---|---|---|---|---|---|
+| `pool_50k` (RL pool, op2–20) | 946,492 | 1024 | **0** | all six arms: training + bandit probes; verl filter off | pre-filtered (`build_pool.py`) | ✅ consistent |
+| `track32` (tracking sweep) | 608 | 941 | **0** | in-training validation of all six arms; verl filter off | pre-filtered (`build_track_set.py`, **fixed today**) | ✅ fixed: was 4 overlong prompts |
+| `pool_2k` (smoke pool) | 38,000 | 1475 | 139 | Gate-2 smoke configs only | verl filter **on** at load (drops them) | ✅ safe (different path, never used by full runs) |
+| `testsets/medium50` | 200 | 1040 | 3 | Gate-2 smoke validation file | verl filter **on** at load | ✅ safe. Its path in `gate2_base.yaml` was stale after the medium set was grown (would crash at load): **fixed today** |
+| `testsets/easy` | 225 | 1029 | 1 | eval harness only | none | ⚠️ kept on purpose, see below |
+| `testsets/medium` | 800 | 1046 | 5 | eval harness only | none | ⚠️ kept on purpose |
+| `testsets/hard` | 204 | 928 | 0 | eval harness only | none | ✅ |
+| `val` op2–20 × 200 | 3,800 | 1192 | 17 | eval harness: Gate-1 p_L table, T=1.0 sweep | none | ⚠️ kept on purpose |
+| `test/op12-1k` | 1,000 | 1164 | 3 | eval harness: Gate-1 cross-check | none | ⚠️ kept on purpose |
+
+The bandit's probe prompts are drawn from `pool_50k` by the same sampler as training prompts, so they are
+covered by the first row. No other code path builds a problem set.
+
+**Evaluation sets are deliberately not length-filtered (6 of 1,229 test problems; 17 of 3,800 val).**
+1. The eval harness never truncates or crashes. With `max_model_len` 2048 the longest prompt (1192 tokens) still
+   leaves ≥ 856 tokens to answer, more than any correct answer needs (base p95 ≤ 440, gold ≤ 700).
+2. Every model is scored on the same problems with the same harness, so method comparisons and the
+   newly-solvable count are unaffected.
+3. Gate 1 reproduced the paper with these sets as they are.
+
+The one real asymmetry: these few long-story problems can appear at test time but never in RL training.
+
+**DECISION (2026-11-15): keep the long test prompts. The test and val sets stay exactly as built.** Reasons, for the report:
+1. **Fidelity to the paper's protocol.** The paper evaluates on its released `test/` split as is. Gate 1 reproduced
+   its numbers with these problems included (32/32 checks within tolerance). Removing them would make our test sets a
+   filtered subset that no longer matches what Fig. 3 / Fig. 9 report.
+2. **No measurement artefact.** The 1024-token limit is a *training* constraint (verl's `max_prompt_length`), not an
+   evaluation one. At test time the model gets up to 2048 tokens in total, so even the longest test prompt (1046
+   tokens) leaves ≥ 1002 tokens to answer, and the longest val prompt (1192) leaves 856. That is more than any
+   correct answer needs (base p95 ≤ 440, gold ≤ 700). Nothing is truncated and nothing fails to parse because of length.
+3. **No effect on comparisons.** Every model (base, released checkpoint, all six arms, all seeds) is scored on the
+   identical problems with the identical harness. Method differences and the newly-solvable count are paired
+   comparisons on the same problems, so a fixed set of 6 problems cannot favour one arm.
+4. **Small and disclosed.** 6 of 1,229 test problems (0.5%): 1 easy (op 6, 1029 tokens), 5 medium (2 at op 11, 3 at op 13; 1031–1046 tokens), 0 hard. The headline hard set
+   contains none. Being unseen-length problems, they make the test slightly *harder* for every model, never easier.
+5. **Easy to check.** `results/prompt_length_audit.csv` lists the counts per set. Any reported number can be
+   recomputed without these problems from the per-problem CSVs (`results/per_problem/*.csv` keep one row per
+   problem), if a reviewer asks.
