@@ -103,3 +103,11 @@
   (correct-solution max ever seen: 463). That is the length of the longest pretraining-range (op ≤ 10)
   gold solutions (~430). Gold op14+ solutions need 490–630 tokens. So the 1024 cap is not the ceiling;
   a learned length prior is. Worth watching whether RL lengthens outputs — and re-checking the cap then.
+
+### A5 — overlong-prompt filter on the heldout RL pool (`results/heldout_prompt_filter_by_level.csv`)
+- Exact replica of `CustomRLHFDataset.maybe_filter_out_long_prompts` (incl. its quirk: `compose_prompt`
+  returns a (prompt, answer) tuple that the tokenizer treats as a 2-item batch; `[0]` is the prompt).
+- Drop fraction at max_prompt_length=1024: 0.01–0.04% (op2–4), 0.2–0.4% (op5–13), 0.4–0.8% (op14–20);
+  worst op18 0.79% (397/50k). ≥49.6k problems kept at every level → not a constraint. Mild bias: the
+  dropped problems are the longest prompts (most distractor facts). Not worth changing max_prompt_length.
+- (Ran after B6/B7 finished their jobs; A5's CPU job was queued while B was written.)
