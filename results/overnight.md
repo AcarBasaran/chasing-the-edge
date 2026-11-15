@@ -128,3 +128,16 @@
      verl imports flash_attn unconditionally on CUDA and hard-codes `attn_implementation="flash_attention_2"`,
      so no way around it without patching verl. Decision: build from source on a compute node
      (`slurm/build_flash_attn.sh`, cuda/12.6.3 + gnu12, sm80 only — runs on sm86 A40/A6000).
+- One-step attempts (each a different failure, fixed in the env/launcher — verl untouched):
+  1. `ValueError: Please don't set ROCR_VISIBLE_DEVICES when HIP/CUDA_VISIBLE_DEVICES is set` — SLURM exports
+     both. Fix: `unset ROCR_VISIBLE_DEVICES HIP_VISIBLE_DEVICES` in `slurm/gate2_smoke.sbatch`. Same run showed
+     Ray's unix sockets failing on beegfs `/scratch/tmp` (Errno 95) → `TMPDIR=RAY_TMPDIR=/tmp/edge_$JOBID`.
+  2. `RuntimeError: There is no current event loop in thread 'MainThread'` at verl `fsdp_workers.py:592`
+     (`asyncio.get_event_loop()`): uvloop 0.23 (pulled by vLLM) raises instead of creating a loop.
+     Fix: pin `uvloop==0.21.0`.
+  3. **Success** (job 2022636, A40 ai22, 190 s incl. startup): step 1 score/mean 0.208 (base p@T=0.7 for
+     op11-14 is 0.18 — consistent), pg_loss -9.2e-5, kl_loss 4.7e-5, grad_norm 0.062, entropy 0.118,
+     resp len mean 283 / max 969, clip ratio 0, peak GPU mem 20 GB.
+- flash-attn build: first attempt compiled sequentially (ninja not on PATH because `$EDGE_PY` is called
+  without activating the env; also picked node's nvcc 12.9) → cancelled at 31 min. Fixed PATH/CUDA_HOME →
+  built in 12.6 min. Env now: numpy 2.2.6, flash-attn 2.8.3 (source, sm80), uvloop 0.21.0, `pip check` clean.

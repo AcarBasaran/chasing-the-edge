@@ -7,12 +7,17 @@
 set -euo pipefail
 source /home/ebasaran22/chasing-the-edge/slurm/env.sh
 module load cuda/12.6.3 gnu12/12.4.0
+# env bin first: torch's cpp_extension needs `ninja` on PATH, else it silently builds one
+# file at a time (first attempt: 11/72 kernels in 31 min). CUDA 12.6 to match torch cu126.
+export CUDA_HOME=/opt/ohpc/pub/compiler/cuda/12.6.3
+export PATH="$(dirname "${EDGE_PY}"):${CUDA_HOME}/bin:${PATH}"
 export CC=gcc CXX=g++
 export FLASH_ATTN_CUDA_ARCHS="80"
 export FLASH_ATTENTION_FORCE_BUILD=TRUE
 export MAX_JOBS="${SLURM_CPUS_PER_TASK:-16}"
 export NVCC_THREADS=2
 export TMPDIR="${EDGE_SCRATCH}/build_tmp"; mkdir -p "${TMPDIR}"
+echo "ninja: $(ninja --version) at $(command -v ninja)"
 echo "nvcc: $(nvcc --version | tail -1)  gcc: $(gcc --version | head -1)  MAX_JOBS=${MAX_JOBS}"
 
 # numpy: restore 2.x (verl's numpy<2 pin broke pandas 3.1 / scipy 1.18 / cupy / opencv;

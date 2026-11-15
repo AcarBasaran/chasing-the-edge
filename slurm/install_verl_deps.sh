@@ -13,21 +13,23 @@ torchvision==0.22.1
 torchaudio==2.7.1
 transformers==4.55.4
 vllm==0.10.1.1
+# uvloop >= 0.22 raises in get_event_loop() with no running loop; verl fsdp_workers.py:592 relies on the old behaviour
+uvloop==0.21.0
 EOF
 
 # verl/setup.py install_requires (minus transformers/datasets/pandas already present).
+# verl pins numpy<2, but that breaks pandas 3.1/scipy 1.18/cupy/opencv; verl runs fine on numpy 2.2.6.
 "${EDGE_PY}" -m pip install -c "${CONS}" \
-  accelerate codetiming dill hydra-core "numpy<2.0.0" peft "pyarrow>=19.0.0" pybind11 pylatexenc \
+  accelerate codetiming dill hydra-core "numpy==2.2.6" peft "pyarrow>=19.0.0" pybind11 pylatexenc \
   "ray[default]>=2.41.0" torchdata "tensordict>=0.8.0,<=0.10.0,!=0.9.0" wandb "packaging>=20.0" tensorboard \
   2>&1 | tail -3
 
-# flash-attn: prebuilt wheel matching torch 2.7 / cu12 / py312 / C++ ABI.
-ABI=$("${EDGE_PY}" -c "import torch; print('TRUE' if torch._C._GLIBCXX_USE_CXX11_ABI else 'FALSE')")
-WHL="flash_attn-2.8.3+cu12torch2.7cxx11abi${ABI}-cp312-cp312-linux_x86_64.whl"
-"${EDGE_PY}" -m pip install -c "${CONS}" --no-deps \
-  "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/${WHL}" 2>&1 | tail -2
+"${EDGE_PY}" -m pip install -c "${CONS}" "uvloop==0.21.0" 2>&1 | tail -1
+
+# flash-attn: the prebuilt GitHub wheels need GLIBC_2.32 (cluster: 2.28) -> build from source:
+#   sbatch --wait --job-name=c-flash --cpus-per-task=32 --mem=160G --time=03:00:00 \
+#          slurm/run_cpu.sbatch 'bash slurm/build_flash_attn.sh'
 
 "${EDGE_PY}" -m pip check 2>&1 | tail -5 || true
 "${EDGE_PY}" -c "import torch, transformers, vllm, numpy, tensordict, ray; print('torch', torch.__version__, 'tf', transformers.__version__, 'vllm', vllm.__version__, 'numpy', numpy.__version__, 'tensordict', tensordict.__version__, 'ray', ray.__version__)"
-"${EDGE_PY}" -c "import flash_attn; print('flash_attn', flash_attn.__version__)" || echo "flash_attn import failed (needs GPU node to fully load?)"
 cd "${UPSTREAM}" && PYTHONPATH="${UPSTREAM}" "${EDGE_PY}" -c "import verl, verl.trainer.main_ppo; from verl.experimental.dataset.sampler import AbstractCurriculumSampler; print('verl import ok', verl.__version__)"

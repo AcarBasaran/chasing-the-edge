@@ -23,6 +23,15 @@ export TOKENIZERS_PARALLELISM=true
 export HYDRA_FULL_ERROR=1
 export RAY_DEDUP_LOGS=0
 export VLLM_USE_V1=1
+# SLURM exports ROCR_VISIBLE_DEVICES next to CUDA_VISIBLE_DEVICES; verl's Worker refuses
+# both ("Please don't set ROCR_VISIBLE_DEVICES when HIP/CUDA_VISIBLE_DEVICES is set").
+unset ROCR_VISIBLE_DEVICES HIP_VISIBLE_DEVICES
+# Ray + multiprocessing create unix sockets under TMPDIR; beegfs (/scratch/tmp) can't hold
+# sockets (Errno 95). Use node-local /tmp with a short path (socket paths max 107 chars).
+export TMPDIR="/tmp/edge_${SLURM_JOB_ID}"
+export RAY_TMPDIR="${TMPDIR}"
+mkdir -p "${TMPDIR}"
+trap 'rm -rf "${TMPDIR}"' EXIT
 OUT="${EDGE_SCRATCH}/outputs/gate2"
 mkdir -p "${OUT}"
 
