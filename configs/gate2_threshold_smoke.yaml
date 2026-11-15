@@ -10,7 +10,7 @@ hydra:
     - file://verl/trainer/config
 
 defaults:
-  - gate2_fixed_band_smoke
+  - gate2_base
   - _self_
 
 data:

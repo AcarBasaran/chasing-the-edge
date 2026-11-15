@@ -149,3 +149,20 @@
   283 → 318 tokens (no clipping). ~55 s/step at B=256×n=6 on one A40.
 - Throughput note for planning: a full paper-scale run (B=1024, ~200 steps) would be ~4× per step ≈ 3.7 min/step
   on one A40 → ~12 GPU-h per run. Multi-GPU (n_gpus_per_node) will be needed for 20+ runs.
+
+### C9 — Threshold sampler through `data.sampler.class_path` (job 2022942, A40 ai22, 21.8 min)
+- First attempt failed at config composition (no GPU time): Hydra only accepts `hydra.searchpath` in the
+  primary config, and the threshold config inherited the fixed-band one. Fix: shared settings moved to
+  `configs/gate2_base.yaml`; both run configs are thin primaries. Composition now checked on CPU with
+  `--cfg job --resolve` before using a GPU. Fixed-band settings unchanged by the refactor.
+- Hook works: verl loaded `EdgeCurriculumSampler` from the YAML; pool sizes reflect verl's overlong filter.
+  Per-step log: `results/gate2/threshold_smoke_sampler_log.jsonl`; metrics `results/gate2/threshold_smoke_metrics.csv`.
+- **Logged level changes: 10 → 11 (step 1) → 12 (step 2) → 13 (step 7) → 14 (step 18).** SMOKE OK
+  (losses finite, reward nonzero). p at the active level, training reward, T=1.0:
+  L10 .63 | L11 .49 | L12 .25→.46 | L13 .10→.41 | L14 .18, .19.
+  Known-side memory blocked 4 back-moves (e.g. step 7: L13 p=.10 < lo but L12 freshly measured .46 > hi).
+- Smoke observation (not a result — 20 steps, B=256, one seed): the base model had p(op13)=0.004 and
+  p(op14)=0.00004 at T=0.7, yet after ~7 RL steps on 10–12 op13 was at 0.10 and after 17 steps op14 at 0.18.
+  The edge moves within tens of steps, faster than I expected — directly relevant to the project premise.
+- Section C GPU time: 1.6 + 2.4 + 3.2 (one-step attempts) + 21.6 (fixed band) + 0.3 + 21.8 (threshold)
+  ≈ 51 GPU-min of the 2 h cap.

@@ -1,0 +1,91 @@
+# Shared settings for Gate-2 smoke runs (not a run config itself: no hydra.searchpath,
+# which Hydra only accepts in the primary config). Used by gate2_fixed_band_smoke.yaml
+# and gate2_threshold_smoke.yaml.
+#
+# Mirrors upstream scripts/composition/op-difficulty-10B/rl-200steps/op11-14_uniform_process_strict.yaml
+# (strict process reward, lr 1e-6, KL loss 1e-3 low_var_kl, n=6, T=1.0) scaled to one GPU:
+#   train_batch_size 1024 -> 256, ppo_mini_batch_size 256 -> 64 (same 4 updates per step).
+defaults:
+  - ppo_trainer
+  - _self_
+
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+
+data:
+  train_files:
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op11-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op12-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op13-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op14-2k.jsonl
+  val_files:
+    - ${oc.env:EDGE_REPO}/data/testsets/medium/op11-50.jsonl
+  tokenizer: null
+  train_batch_size: 256
+  max_prompt_length: 1024
+  max_response_length: 1024
+  id_max_op: 10
+  filter_overlong_prompts: true
+  filter_overlong_prompts_workers: 8
+  truncation: error
+  shuffle: true
+  seed: 0
+  custom_cls:
+    path: verl/dataset.py
+    name: CustomRLHFDataset
+
+custom_reward_function:
+  path: verl/reward_fn.py
+  name: compute_score_with_step_process
+  reward_kwargs:
+    answer_weight: 1.0
+    step_weight: 0.0
+    value_tolerance: 1e-6
+    zero_on_process_mismatch: true
+
+actor_rollout_ref:
+  model:
+    path: ${oc.env:EDGE_BASE_MODEL}
+    enable_gradient_checkpointing: true
+    use_remove_padding: true
+  actor:
+    optim:
+      lr: 1e-6
+    ppo_mini_batch_size: 64
+    ppo_micro_batch_size_per_gpu: 16
+    use_kl_loss: true
+    kl_loss_coef: 0.001
+    kl_loss_type: low_var_kl
+    entropy_coeff: 0.0
+    fsdp_config:
+      param_offload: false
+      optimizer_offload: false
+  rollout:
+    name: vllm
+    gpu_memory_utilization: 0.4
+    n: 6
+    temperature: 1.0
+    tensor_model_parallel_size: 1
+    log_prob_micro_batch_size_per_gpu: 16
+  ref:
+    log_prob_micro_batch_size_per_gpu: 16
+    fsdp_config:
+      param_offload: false
+
+ray_init:
+  num_cpus: 16
+
+trainer:
+  critic_warmup: 0
+  logger: [console]
+  project_name: chasing-the-edge
+  experiment_name: gate2_fixed_band_smoke
+  default_local_dir: ${oc.env:EDGE_SCRATCH}/outputs/gate2/${trainer.experiment_name}/ckpt
+  n_gpus_per_node: 1
+  nnodes: 1
+  save_freq: -1
+  test_freq: -1
+  val_before_train: false
+  total_epochs: 1
+  total_training_steps: 20
