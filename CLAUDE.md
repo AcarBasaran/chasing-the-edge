@@ -150,6 +150,11 @@ Four implementations:
    Sweep tau in {0.1, 0.3, 0.5}, delta = 0.1.
    NOTE: with tau=0.1 and delta=0.1 the lower bound is p < 0, which is
    unreachable. Needs an asymmetric delta or a clamp. Decide and document.
+   DECIDED: lo = max(tau - delta, 0.5*tau) -> [0.05, 0.2] for tau=0.1
+   (clamp inactive for 0.3, 0.5). Plus known-side memory: never move into a
+   neighbour freshly measured on the wrong side — without it the sampler
+   ping-pongs, because adjacent levels straddle any tau+-delta band
+   (mock harness; samplers/core.py docstring).
 4. Bandit — each level is an arm of a non-stationary bandit.
    reward:  r_L(t) = p_L(t) - p_L(t-m)
    value:   Q_L <- (1-alpha) Q_L + alpha * r_L(t)

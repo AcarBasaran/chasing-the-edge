@@ -1,7 +1,51 @@
 # Overnight log — 2026-11-15
 
 ## Summary
-(filled in at the end)
+
+**Everything requested is done; nothing is blocked.** All items A1–A5, B6–B7, C8–C9 are committed
+(local `main`, not pushed). Base model matched the paper, so section C ran. Section C used ≈51 of
+the 120 allowed GPU-minutes. All work after the overnight brief ran via SLURM on `ai`.
+
+| item | status | where |
+|---|---|---|
+| A1 CLAUDE.md fixes | done | CLAUDE.md |
+| A2 four samplers + verl adapter | done | `samplers/core.py`, `samplers/verl_adapter.py` |
+| A3 mock harness, fixes, tests, plots | done — **fixed a Threshold oscillation bug** | `samplers/mock.py`, `results/mock/`, `tests/` (34/34 pass) |
+| A4 unbiased pass@k + tests | done | `eval/passk.py`, `tests/test_passk.py` |
+| A5 overlong-prompt drop rate | done — 0.01–0.8%/level, negligible | `results/heldout_prompt_filter_by_level.csv` |
+| B6 per-problem base counts /128 | done — 5,429 problems | `results/base_per_problem.csv` |
+| B7 per-level p / train p / p95 len vs paper | done — **matches paper** | `results/base_by_level_summary.csv`, `docs/gate1.md` |
+| C8 one GRPO step + 20-step smoke | done — reward 0.21→~0.38, losses finite | `results/gate2/fixed_band_smoke_metrics.csv` |
+| C9 Threshold via `data.sampler.class_path` | done — level 10→11→12→13→14 | `results/gate2/threshold_smoke_*` |
+
+Findings worth your attention:
+1. **The edge is razor-sharp at step 0** (p = .49/.24/.004/.00004 at op 11/12/13/14, 0 for 15–20) **and moves
+   fast**: in the Threshold smoke run op13 reached p≈.10 after ~7 steps and op14 ≈.18 after 17 (B=256, T=1).
+2. **1024-token cap is not binding**; instead the base model's outputs plateau at p95 ≈ 410 tokens for op ≥ 11
+   (≈ longest op≤10 solution), while op14+ gold needs 490–630. A learned length prior, not truncation.
+3. **Reward ≠ eval**: training reward also zeroes extra nodes; identical for op ≥ 11, ≤0.9pp lower below.
+4. **Threshold had to change**: the edge is steeper than any τ±δ band, so a plain up/down rule ping-pongs.
+   Added known-side memory (don't move into a neighbour freshly measured on the wrong side). τ=0.1 lower
+   bound clamped to 0.5·τ = 0.05.
+5. **Bandit per spec (α=0.1, m=25) lags the edge ~2 levels in the mock**; α=0.3 or m=10 cuts lag to ~0.8.
+
+Environment gotchas now solved in scripts (verl itself untouched): transformers pinned 4.55.4; numpy kept at
+2.2.6 despite verl's `<2` pin; flash-attn built from source (prebuilt wheels need glibc 2.32, cluster has 2.28);
+uvloop pinned 0.21.0; `unset ROCR_VISIBLE_DEVICES`; Ray tmpdir on node-local /tmp; Hydra searchpath only in
+primary configs.
+
+**What I need from you**
+1. Bandit hyperparameters: keep spec (α=0.1, m=25) or switch to α=0.3 / m=10 per the mock? (`results/mock/`)
+2. Gate 3 baseline: the HF `rl/op11-14_uniform` checkpoint's name matches upstream's **answer-only**-reward
+   config (`op11-14_uniform.yaml`), not the strict-process one we smoke-tested. Which do we reproduce/compare?
+   (Maybe ask the authors.)
+3. Compute plan: one A40 does ~55 s/step at B=256; paper scale (B=1024, ~200 steps) ≈ 12 GPU-h/run on one GPU.
+   20+ runs needs multi-GPU configs (QoS allows 8 GPUs). OK to set up 4-GPU runs next?
+4. Medium test set: 50 problems/level is too noisy for per-level pass@128 (op12 draw was 2.4σ low). OK to grow
+   it to 200/level (~20 GPU-min of base eval)?
+5. Threshold smoke used `patience=1`; real runs default to `patience=2`, `start_level` = 10 or 11?
+6. Push the 14 local commits to origin? (I did not push.) Also: your job 1776960 has been pending forever
+   (QoS `ai` not allowed on partition `short`) — probably safe to cancel.
 
 ## Log
 
