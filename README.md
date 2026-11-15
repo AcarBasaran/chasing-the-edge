@@ -106,14 +106,37 @@ Everything runs through SLURM on the `ai` partition, never on the login node. He
    next to this repo), `HF_HOME` on scratch, and `EDGE_PY` (the Python env). The defaults point at Eren's
    directories. Export your own `EDGE_SCRATCH` / `EDGE_REPO` / `UPSTREAM` before sourcing, and note that the
    `#SBATCH --output` lines and the `source` line in each script use Eren's paths.
-2. **Environment** (`$EDGE_SCRATCH/envs/edge`, Python 3.12): torch 2.7.1 (cu126), vLLM 0.10.1.1,
-   transformers **4.55.4** (pin it), then the verl dependencies and flash-attn:
+2. **Environment.** Exact versions we use:
+
+   | component | version |
+   |---|---|
+   | paper's code ([Interplay-LM-Reasoning](https://github.com/Interplay-LM-Reasoning/Interplay-LM-Reasoning)) | commit **`ab728f05d81de9af38d0ca155a84166b037e355a`** (2026-06-08), unmodified |
+   | verl | **0.5.0.dev**, the copy inside that commit (`verl/`), used through `PYTHONPATH`, not pip-installed |
+   | Python | 3.12 (conda env at `$EDGE_SCRATCH/envs/edge`) |
+   | torch / CUDA | 2.7.1 / cu126 |
+   | vLLM | 0.10.1.1 |
+   | transformers | **4.55.4** (pip otherwise picks 5.x, which breaks loading) |
+   | flash-attn | 2.8.3, built from source for A40/A6000 (`sm_80`) |
+   | ray / tensordict / numpy / uvloop | 2.60.0 / 0.10.0 / 2.2.6 / **0.21.0** |
+   | everything else | `requirements-lock.txt` (full `pip freeze`, 223 packages) |
+
+   We never change the paper's code: our samplers plug into verl's existing curriculum-sampler hook
+   (`data.sampler.class_path` in the YAML).
+
+   To rebuild from scratch (clones the paper's code at that commit, creates the env, installs verl's
+   dependencies, compiles flash-attn, downloads the model and data, then checks the result against the lock file):
    ```bash
-   git clone https://github.com/Interplay-LM-Reasoning/Interplay-LM-Reasoning ../Interplay-LM-Reasoning
-   sbatch --wait slurm/run_cpu.sbatch 'bash slurm/install_verl_deps.sh'
-   sbatch --wait --cpus-per-task=32 --mem=160G --time=03:00:00 slurm/run_cpu.sbatch 'bash slurm/build_flash_attn.sh'
-   sbatch --wait slurm/run_cpu.sbatch '$EDGE_PY eval/download_assets.py --with-rl'
+   git clone https://github.com/AcarBasaran/chasing-the-edge && cd chasing-the-edge
+   export EDGE_SCRATCH=/scratch/$USER/chasing-the-edge EDGE_REPO=$PWD UPSTREAM=$(dirname $PWD)/Interplay-LM-Reasoning
+   sbatch --wait --cpus-per-task=32 --mem=160G --time=03:00:00 slurm/run_cpu.sbatch 'bash slurm/setup_env.sh'
+   sbatch --wait slurm/run_cpu.sbatch '$EDGE_PY -m pytest -q tests'      # 36 tests should pass
    ```
+   `slurm/setup_env.sh` chains the exact steps used on 2026-11-15. Each step ran individually, but the chained
+   script has not been run end-to-end, since it refuses to overwrite an existing env. Known traps it handles:
+   the prebuilt flash-attn wheel needs a newer glibc than VALAR's; uvloop ≥ 0.22 breaks verl's worker startup;
+   verl pins numpy < 2, which breaks pandas and scipy, so we keep numpy 2.2.6. Two traps are handled in the job
+   scripts instead: SLURM sets `ROCR_VISIBLE_DEVICES`, which verl rejects, and Ray's sockets can't live on
+   scratch's filesystem.
 3. **Jobs.**
 
    | script | what it does |
