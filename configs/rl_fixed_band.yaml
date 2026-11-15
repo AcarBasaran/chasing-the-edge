@@ -1,0 +1,14 @@
+# Arm 1/6: FIXED BAND (the paper's method, our main baseline): uniform over op 11-14 all run.
+# Gate 3 baseline: compare with the released rl/op11-14_uniform checkpoint (loose check, see docs/gate3.md).
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: fixed_band
+    method_kwargs: {levels: [11, 12, 13, 14]}

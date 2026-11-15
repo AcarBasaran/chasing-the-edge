@@ -75,10 +75,10 @@ def _score(rec):
     return s["perfect"], s["train_reward"]
 
 
-def load_task(run_dir: Path, name: str, data_root: Path, tok, workers: int):
+def load_task(run_dir: Path, name: str, data_root: Path, tok, workers: int, ckname: str = "base"):
     rows = eval_rows(data_root)
-    gens = read_jsonl(run_dir / "gen" / name / "base_id_generations.jsonl")
-    graph = read_jsonl(run_dir / "graph" / name / "base_id_generations.jsonl.graph_results.jsonl")
+    gens = read_jsonl(run_dir / "gen" / name / f"{ckname}_id_generations.jsonl")
+    graph = read_jsonl(run_dir / "graph" / name / f"{ckname}_id_generations.jsonl.graph_results.jsonl")
 
     # Upstream writes one graph result per generation, in order, skipping only
     # empty solutions (missing_solution) -- align on that.

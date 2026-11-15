@@ -1,0 +1,16 @@
+# Arm 6/6: BANDIT (non-stationary, one arm per level). alpha=0.3 (DECIDED 2026-11-15; spec 0.1 lags
+# ~2.3 levels in the mock), epsilon=0.1, probe every m=25 steps (4 prompts x 6 rollouts per level,
+# inside the training batch -> counted in the budget). Revisit m once the baseline measures edge speed.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: bandit
+    method_kwargs: {alpha: 0.3, epsilon: 0.1}
+    probe_every: 25

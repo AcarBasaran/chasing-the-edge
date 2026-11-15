@@ -147,3 +147,72 @@ Key consequences for the project:
   it fails by stopping early, not by running out of budget.
 - Prompt length: some prompts exceed 1024 tokens at most levels (max 1192 at op 17); verl's
   `filter_overlong_prompts` with `max_prompt_length: 1024` silently drops them from the RL pool.
+
+## Headline motivation: share of GRPO groups that produce any gradient (added 2026-11-15)
+
+A GRPO group of G rollouts gives zero gradient iff all G rewards are equal. **Our G = 6** (the paper's
+`rollout.n`). Reward = strict training reward. Two estimates per level:
+
+* **level-mean formula**: 1 − p^G − (1−p)^G with the level's mean p (the CLAUDE.md back-of-envelope);
+* **per-problem**: the same formula averaged over problems, using the unbiased estimator
+  C(c,G)/C(n,G) of p^G per problem. This is the real number.
+
+| level | p, T=1.0 | level-mean formula, G=6 | **per-problem, G=6, T=1.0** | per-problem, G=6, T=0.7 | problems never solved (T=1.0, 64 samples) | **measured in real GRPO groups** |
+|---|---|---|---|---|---|---|
+| 9  | 0.721 | 85.9% | **45.4%** | 34.4% | 0% | |
+| 10 | 0.567 | 96.0% | **41.3%** | 34.9% | 2% | 38.7% (256 groups) |
+| 11 | 0.483 | 96.8% | **41.9%** | 37.7% | 11% | 46.5% (256 groups) |
+| 12 | 0.252 | 82.4% | **36.8%** | 32.6% | 31% | 37.1% (256 groups) |
+| 13 | 0.0048 | 2.9% | **2.4%** | 1.5% | 90% | |
+| 14 | 0.0001 | 0.05% | **0.05%** | 0.02% | 100% | |
+| 15–20 | 0 | 0% | **0%** | 0% | 100% | |
+
+`results/informative_fraction_by_level.csv` (also G=8), plot `results/informative_fraction_by_level.png`.
+T=1.0 numbers come from a separate base eval on val op9–15 (64 samples per problem; `results/base_T1.0_per_problem.csv`).
+The "measured" column is the actual fraction of groups with nonzero reward variance at steps 0–2 of
+the Gate-2 Threshold smoke run, where the model is still effectively the base model
+(`results/gate2/threshold_smoke_sampler_log.jsonl`).
+
+**Two findings:**
+
+1. **Half of the paper's band is dead weight at step 0, as predicted.** op13 gives a gradient in 2.4% of
+   groups and op14 in 0.05%. Averaged over the band, 20% of the fixed-band groups carry any signal (per-problem, T=1.0).
+2. **The level-mean formula overstates the informative share by ~2.3× even at the best levels.** At op11 it
+   predicts 97%, but only ~42% of groups are informative; the real GRPO run measured 46.5%. Problems within
+   a level are mostly bimodal: always solved or never solved (at op12, 31% of problems are 0/64 while the
+   level mean is 0.25). "The edge" is therefore a property of individual problems as much as of levels.
+   For the samplers this means the level-mean p is a weak proxy for gradient yield. Logging the measured
+   informative fraction per step, which `EdgeCurriculumSampler` already does, is the better signal to plot.
+
+T=0.7 vs T=1.0: the level means barely move (op11 0.489 vs 0.483, op12 0.238 vs 0.252). So the Threshold
+start behaviour holds at the RL temperature: τ=0.3 leaves op11 upward, and τ=0.5 holds there.
+
+## Medium test set grown to 200/level (2026-11-15)
+
+`data/testsets/medium/op{11..14}-200.jsonl`. The original 50/level are kept as a subset (`in_v1_50`, and
+`data/testsets/medium50/`); 150/level were added with seed 20261116 (`eval/grow_medium.py`). The base model on the
+200/level set scores pass@1 17.5 / pass@8 29.6 / pass@128 **38.4**, against paper Fig. 3 at 17 / 31 / 43.5. All 32 Gate-1
+checks are now within tolerance; pass@128 is within 5.1pp of Fig. 3 and within 3.3pp of our val-split number (41.8).
+
+## Per-problem success rate within a level (added 2026-11-15)
+
+`results/per_problem_p_hist.png`, `results/per_problem_p_by_level.csv` (`eval/per_problem_p_hist.py`). Base model, strict reward,
+T=1.0, 64 samples × 200 val problems per level:
+
+| level | mean p | p < 0.1 | 0.1 ≤ p ≤ 0.9 | p > 0.9 | never solved | always solved |
+|---|---|---|---|---|---|---|
+| 10 | 0.57 | 20% | 39% | 41% | 2% | 10% |
+| 11 | 0.48 | 26% | **38%** | 36% | 11% | 7% |
+| 12 | 0.25 | 53% | 40% | 6% | 31% | 0% |
+| 13 | 0.005 | 99% | 1% | 0% | 90% | 0% |
+| 14 | 0.000 | 100% | 0% | 0% | 100% | 0% |
+
+At op 10–12 roughly 60% of problems are near-never or near-always solved, and these levels overlap in
+per-problem difficulty (op 12 has problems above 0.9; op 10 has problems below 0.1). The mass sits *near* 0 and 1
+more than exactly at them (op 11: 11% exactly 0, 7% exactly 1), and per-problem estimates from 64 samples carry
+binomial noise (SE ≈ 0.06 at p = 0.5) that smooths the histogram slightly but cannot create the two humps.
+
+Implication: the op level is a coarse proxy for difficulty. A sampler that picks *problems* by their own estimated
+p (e.g. from previous rollouts of the same problem) could raise the informative share well above the ~40% any
+level-based sampler can reach at step 0. **Future work, not built** (decision 2026-11-15); the four
+level-based samplers remain the project.

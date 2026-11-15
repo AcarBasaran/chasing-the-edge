@@ -17,9 +17,9 @@ val:hard_15_20,pass@128,0,fig3,0,0,True
 test:easy,pass@1,85.47,fig3,82.5,2.97,True
 test:easy,pass@8,96.52,fig3,96.5,0.02,True
 test:easy,pass@128,98.67,fig3,99.6,-0.93,True
-test:medium,pass@1,16.87,fig3,17,-0.13,True
-test:medium,pass@8,27.79,fig3,31,-3.21,True
-test:medium,pass@128,35.5,fig3,43.5,-8,False
+test:medium,pass@1,17.52,fig3,17,0.52,True
+test:medium,pass@8,29.6,fig3,31,-1.4,True
+test:medium,pass@128,38.38,fig3,43.5,-5.12,True
 test:hard,pass@1,0,fig3,0,0,True
 test:hard,pass@8,0,fig3,0,0,True
 test:hard,pass@128,0,fig3,0,0,True

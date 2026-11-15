@@ -33,6 +33,9 @@ With success probability p, the fraction of informative groups is:
 
 At G=8: p=0.01 -> 7.7%, p=0.1 -> 57%, p=0.3 -> 94%, p=0.5 -> 99%,
 p=0.9 -> 57%, p=0.99 -> 7.7%.
+OUR G IS 6 (the paper's rollout.n; upstream rl-200steps configs). Measured on the
+base model: results/informative_fraction_by_level.csv/.png (per-problem unbiased
+estimate; the level-mean formula overstates it because p varies across problems).
 
 That curve IS the paper's finding. Everything we build follows from it.
 
@@ -160,6 +163,9 @@ Four implementations:
    value:   Q_L <- (1-alpha) Q_L + alpha * r_L(t)
    policy:  argmax Q_L with prob 1-epsilon, else uniform random level.
    alpha = 0.1, epsilon = 0.1.
+   DECIDED 2026-11-15: alpha = 0.3 (0.1 lags the edge ~2.3 levels in the mock, 0.3 ~0.8);
+   m = 25 for now. Re-set m from the edge speed MEASURED in the fixed-band baseline
+   (eval/edge_speed.py: m <= 1 / levels-per-step), not from the mock. Report it.
 
 Implementation detail: pre-generate a pool of problems bucketed by op
 count; the sampler picks a bucket. Do not generate inside the training loop.
@@ -240,11 +246,23 @@ Gate 2 (Nov 15): ONE GRPO step runs end-to-end. Not a full run. Expect
 version hell: vLLM/torch/CUDA mismatches, Ray not finding GPUs under
 SLURM, custom tokenizer loading. Budget days.
 
+THRESHOLD DECIDED 2026-11-15: patience=2, start_level=11 (= fixed band's first level).
+Base p(op11) ~0.49, so tau=0.1/0.3 move UP after 2 steps while tau=0.5 HOLDS at 11.
+That is a real difference between the arms: log and report it.
+
 Gate 3 (Nov 22): fixed-band baseline reproduced, compared against their
 released rl/op11-14_uniform checkpoint. Same shape, roughly same
 magnitude — seeds differ so exact match isn't expected.
 IF THE BASELINE IS FAR OFF, DO NOT PROCEED. Debug instead. A broken
 baseline makes every later comparison meaningless.
+  DECIDED 2026-11-15: THE baseline is OUR fixed-band run with the STRICT process
+  reward. The released checkpoint was probably trained with the ANSWER-ONLY reward
+  (config name + paper Sec. 6), so it is a loose sanity check only: score it under
+  eval / train / answer-only criteria, report all three, document the mismatch
+  (docs/gate3.md, results/gate3_released_rl_comparison.csv; email draft to the
+  authors in results/email_to_authors.md).
+  Full-run configs: configs/rl_base.yaml + rl_<arm>.yaml (only data.sampler differs),
+  launcher slurm/rl_run.sbatch <arm> <seed>. Scale: docs/budget.md.
 
 Gate 4 (Dec 1): threshold sampler vs baseline, one tau. This is the
 Dec 3 progress presentation. A partial or negative result is fine;
@@ -258,6 +276,10 @@ pass@128 evaluation.
 - VALAR HPC (Koc University), SLURM. All training goes through sbatch,
   never on a login node.
 - `module load git` is required (add to .bashrc).
+- QoS `ai` PER USER: 8 running jobs, 8 GPUs, 240 CPUs, 350G memory. Job slots are
+  shared with the user's other projects (CPU-only `restock-*` jobs) -- array tasks
+  each take a slot, so prefer one 4-GPU job over four 1-GPU jobs.
+- GPU nodes: A40 = ai18-ai26, A6000 = ai16 (use --exclude=ai[01-08],ai[11-14]).
 - PyTorch only. verl, vLLM, transformers, safetensors are all PyTorch.
   Samplers are plain Python; pass@k uses math.comb.
 - Home directory quota is limited. Keep checkpoints and rollout outputs
