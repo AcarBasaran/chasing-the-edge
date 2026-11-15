@@ -1,0 +1,10 @@
+sampler,final_skill,skill_gain,mean_inform_realised,final_mean_level,level_switches,direction_reversals,threshold_blocked,lag_final
+fixed_band,14.748,3.748,0.6262,12.51,,,,2.24
+uniform_random,12.153,1.153,0.1929,11.15,,,,1.0
+threshold_tau0.1,14.215,3.215,0.5341,16.0,5,0,0,-1.79
+threshold_tau0.3,15.952,4.952,0.8257,17.0,6,0,57,-1.05
+threshold_tau0.5,16.602,5.602,0.9325,17.0,6,0,85,-0.4
+bandit,15.039,4.039,0.6755,12.78,12,8,,2.26
+threshold_tau0.3_nomemory,16.128,5.128,0.8546,17.0,66,60,0,-0.87
+bandit_alpha0.3,15.378,4.378,0.7308,14.56,15,11,,0.82
+bandit_m10,15.374,4.374,0.7289,14.63,29,22,,0.74

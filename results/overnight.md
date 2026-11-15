@@ -41,3 +41,21 @@
 - **Decision — Threshold tau=0.1**: lower bound clamped to `max(tau-delta, 0.5*tau)` → band [0.05, 0.20].
   Inactive for tau 0.3 ([0.2,0.4]) and 0.5 ([0.4,0.6]), so the sweep differs only in tau.
 - Not implemented: sampler `state_dict` for resuming a killed run (not needed for smoke runs).
+
+### A3 — mock harness (`samplers/mock.py`, plots in `results/mock/`)
+- Fake model: p_i = sigmoid((skill - L - b_i)/0.7), per-problem offset b_i ~ N(0, 0.5), skill0 = 11;
+  skill += 0.012 × (mean informative-group fraction of the batch). B=256, G=8, 500 steps.
+  Runs through the REAL verl adapter (iterator → fake rollouts → `update(fake DataProto)`).
+- **Bug found & fixed — Threshold oscillation.** tau 0.3/0.5 reversed direction 60/89 times in 500 steps.
+  Cause is structural, not noise: the edge is steeper than the band (one level up drops p from > hi to
+  < lo), so patience can't help. Fix: known-side memory — never move into a neighbour whose fresh
+  estimate (≤ `stale_after`=50 measurements old) puts it on the wrong side. After: 6 moves, 0 reversals,
+  skill gain unchanged (4.95 vs 5.13). Regression test added. The `_nomemory` row in the CSV keeps the evidence.
+- **Bandit (spec: alpha 0.1, m 25)** lags the edge by ~2.3 levels: Q is an EMA of probe-to-probe progress,
+  so it reflects where progress was ~10 probes ago. alpha 0.3 or m=10 cut lag to ~0.8 and add +0.35 skill.
+  Kept spec defaults; **recommend alpha=0.3 (or m=10) for the real runs — your call.**
+- Caveat for interpreting the mock: learning ∝ informative fraction, i.e. it models gradient throughput
+  only, not headroom. It is built to favour tau≈0.5 and **cannot answer the tau question**; it only
+  checks the samplers behave (no stalls, no oscillation, tracks skill).
+- Tests: `tests/test_samplers.py` (core rules, tau=0.1 back-off, memory/expiry, bandit math, adapter
+  laziness/probes/reshuffle/score threshold, mock regressions). 34/34 pass (`pytest -q tests`, CPU job).

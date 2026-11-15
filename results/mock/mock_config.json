@@ -1,0 +1,14 @@
+{
+  "steps": 500,
+  "batch_size": 256,
+  "group_size": 8,
+  "s0": 11.0,
+  "scale": 0.7,
+  "eta": 0.012,
+  "problem_sd": 0.5,
+  "per_level": 2000,
+  "probe_every": 25,
+  "probe_k": 4,
+  "seed": 0,
+  "diagnostics": 1
+}
