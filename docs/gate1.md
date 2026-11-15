@@ -264,7 +264,21 @@ covered by the first row. No other code path builds a problem set.
    newly-solvable count are unaffected.
 3. Gate 1 reproduced the paper with these sets as they are.
 
-The one real asymmetry: these few long-story problems can appear at test time but never in RL training. It is
-the same for every arm, and small (0.5% of test problems). If we want test sets that match training exactly, we
-can drop them. The cost is redrawing those 6 test problems and re-running the base pass@128 on them (~5 GPU-min).
-**Not done; flagged for decision.**
+The one real asymmetry: these few long-story problems can appear at test time but never in RL training.
+
+**DECISION (2026-11-15): keep the long test prompts. The test and val sets stay exactly as built.** Reasons, for the report:
+1. **Fidelity to the paper's protocol.** The paper evaluates on its released `test/` split as is. Gate 1 reproduced
+   its numbers with these problems included (32/32 checks within tolerance). Removing them would make our test sets a
+   filtered subset that no longer matches what Fig. 3 / Fig. 9 report.
+2. **No measurement artefact.** The 1024-token limit is a *training* constraint (verl's `max_prompt_length`), not an
+   evaluation one. At test time the model gets up to 2048 tokens in total, so even the longest test prompt (1046
+   tokens) leaves ≥ 1002 tokens to answer, and the longest val prompt (1192) leaves 856. That is more than any
+   correct answer needs (base p95 ≤ 440, gold ≤ 700). Nothing is truncated and nothing fails to parse because of length.
+3. **No effect on comparisons.** Every model (base, released checkpoint, all six arms, all seeds) is scored on the
+   identical problems with the identical harness. Method differences and the newly-solvable count are paired
+   comparisons on the same problems, so a fixed set of 6 problems cannot favour one arm.
+4. **Small and disclosed.** 6 of 1,229 test problems (0.5%): 1 easy (op 6, 1029 tokens), 5 medium (2 at op 11, 3 at op 13; 1031–1046 tokens), 0 hard. The headline hard set
+   contains none. Being unseen-length problems, they make the test slightly *harder* for every model, never easier.
+5. **Easy to check.** `results/prompt_length_audit.csv` lists the counts per set. Any reported number can be
+   recomputed without these problems from the per-problem CSVs (`results/per_problem/*.csv` keep one row per
+   problem), if a reviewer asks.
