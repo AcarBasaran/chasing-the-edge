@@ -193,3 +193,26 @@ start behaviour holds at the RL temperature: τ=0.3 leaves op11 upward, and τ=0
 `data/testsets/medium50/`); 150/level were added with seed 20261116 (`eval/grow_medium.py`). The base model on the
 200/level set scores pass@1 17.5 / pass@8 29.6 / pass@128 **38.4**, against paper Fig. 3 at 17 / 31 / 43.5. All 32 Gate-1
 checks are now within tolerance; pass@128 is within 5.1pp of Fig. 3 and within 3.3pp of our val-split number (41.8).
+
+## Per-problem success rate within a level (added 2026-11-15)
+
+`results/per_problem_p_hist.png`, `results/per_problem_p_by_level.csv` (`eval/per_problem_p_hist.py`). Base model, strict reward,
+T=1.0, 64 samples × 200 val problems per level:
+
+| level | mean p | p < 0.1 | 0.1 ≤ p ≤ 0.9 | p > 0.9 | never solved | always solved |
+|---|---|---|---|---|---|---|
+| 10 | 0.57 | 20% | 39% | 41% | 2% | 10% |
+| 11 | 0.48 | 26% | **38%** | 36% | 11% | 7% |
+| 12 | 0.25 | 53% | 40% | 6% | 31% | 0% |
+| 13 | 0.005 | 99% | 1% | 0% | 90% | 0% |
+| 14 | 0.000 | 100% | 0% | 0% | 100% | 0% |
+
+At op 10–12 roughly 60% of problems are near-never or near-always solved, and these levels overlap in
+per-problem difficulty (op 12 has problems above 0.9; op 10 has problems below 0.1). The mass sits *near* 0 and 1
+more than exactly at them (op 11: 11% exactly 0, 7% exactly 1), and per-problem estimates from 64 samples carry
+binomial noise (SE ≈ 0.06 at p = 0.5) that smooths the histogram slightly but cannot create the two humps.
+
+Implication: the op level is a coarse proxy for difficulty. A sampler that picks *problems* by their own estimated
+p (e.g. from previous rollouts of the same problem) could raise the informative share well above the ~40% any
+level-based sampler can reach at step 0. **Future work, not built** (decision 2026-11-15); the four
+level-based samplers remain the project.

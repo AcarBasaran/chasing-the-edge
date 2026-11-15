@@ -23,29 +23,33 @@ If all G answers are right, or all are wrong, that problem gives **exactly zero 
 spent, nothing learned. Here is the base model we start from (measured in Gate 1, 200 problems ×
 128 samples per level, strict process-verified scoring):
 
-| level (op) | base success rate p | groups with nonzero gradient: textbook formula 1−p⁸−(1−p)⁸ | groups with nonzero gradient: **measured per problem, G=6** |
+| level (op) | base success rate p | **groups with nonzero gradient (measured per problem, G=6)** | naive estimate 1−p⁸−(1−p)⁸ (ignores within-level variance) |
 |---|---|---|---|
-| 2–6 | 0.96–1.00 | 3–32% | 0.4–9% |
-| 7 | 0.84 | 75% | 25% |
-| 8 | 0.79 | 86% | 32% |
-| 9 | 0.75 | 91% | 34% |
-| 10 | 0.59 | 99% | 35% |
-| **11** | **0.49** | **~99%** | **38%** |
-| **12** | **0.24** | **~89%** | **33%** |
-| **13** | **0.004** | **~3%** | **1.5%** |
-| **14** | **0.00004** | **~0.03%** | **0.02%** |
-| 15–20 | 0 (0 of 128 on every problem) | 0% | 0% |
+| 2–6 | 0.96–1.00 | **0.4–9%** | 3–32% |
+| 7 | 0.84 | **25%** | 75% |
+| 8 | 0.79 | **32%** | 86% |
+| 9 | 0.75 | **34%** | 91% |
+| 10 | 0.59 | **35%** | 99% |
+| **11** | **0.49** | **38%** | ~99% |
+| **12** | **0.24** | **33%** | ~89% |
+| **13** | **0.004** | **1.5%** | ~3% |
+| **14** | **0.00004** | **0.02%** | ~0.03% |
+| 15–20 | 0 (0 of 128 on every problem) | **0%** | 0% |
 
 Bold rows are the paper's fixed band. Two things stand out:
 
 * **Half of the paper's band is dead weight at the start of training.** op 13 and op 14 almost never
   produce a gradient, so the run learns from op 11–12 only until the model improves.
-* **The textbook formula is too optimistic.** It plugs in the level's *average* p. But within a level,
-  most problems are either always solved or never solved (at op 12, 31% of problems are never solved
-  while the average is 0.24). Averaging the formula over individual problems gives the right-hand column.
-  The real GRPO groups in our smoke run agree with it: **46.5% at op 11 and 37.1% at op 12**, not 99% / 89%.
-  The paper and our runs use G = 6 rollouts per group; the formula column uses G = 8 for comparison
-  with the project brief.
+* **Even the "good" levels give a gradient in only about a third of groups.** The naive estimate disagrees
+  because success is not spread evenly inside a level: each problem has its own p, and those values pile up
+  near 0 and near 1, so plugging in the level's average p first overstates the share. The measured column
+  averages the formula over individual problems. The real GRPO groups in our smoke run agree with it:
+  46.5% at op 11 and 37.1% at op 12. The measured column uses our G = 6 rollouts per group; the naive
+  estimate uses G = 8, as in the project brief.
+* **The level is a coarse label for difficulty.** At op 11, 62% of problems are either almost never
+  (p < 0.1) or almost always (p > 0.9) solved; op 10 and op 12 look the same
+  (`results/per_problem_p_hist.png`, `results/per_problem_p_by_level.csv`). Picking problems by their own
+  measured p rather than by level could waste far fewer rollouts. *Future work, not built.*
 
 Table: `results/base_model_p_by_level.csv`, `results/informative_fraction_by_level.csv`. Plot:
 `results/informative_fraction_by_level.png`. Details: [docs/gate1.md](docs/gate1.md).
