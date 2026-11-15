@@ -6,7 +6,7 @@ verl wiring (no patching): verl/trainer/main_ppo.py::create_rl_sampler does
                   data_source=train_dataset, data_config=config.data)
 and RayPPOTrainer.fit() calls sampler.update(batch=batch) after every step.
 
-YAML (see configs/smoke_*.yaml):
+YAML (see configs/gate2_threshold_smoke.yaml, configs/rl_*.yaml):
     data:
       dataloader_num_workers: 0          # required: no prefetch, so step t+1 sees update(t)
       sampler:

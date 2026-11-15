@@ -207,11 +207,15 @@ class Bandit(DifficultySampler):
     Only probe measurements update Q, so every arm is measured on the same m-step
     grid and r_L is a true m-step difference. Non-probe (training-batch) measurements
     are kept in `p_train` for logging only.
+
+    alpha defaults to 0.3 (DECIDED 2026-11-15, deviating from the CLAUDE.md spec of 0.1):
+    in the mock harness alpha=0.1 lags the edge by ~2.3 levels, alpha=0.3 by ~0.8.
+    m (probe interval) stays 25 until the baseline run measures how fast the real edge moves.
     """
 
     needs_probes = True
 
-    def __init__(self, levels: Sequence[int] = ALL_LEVELS, alpha: float = 0.1, epsilon: float = 0.1,
+    def __init__(self, levels: Sequence[int] = ALL_LEVELS, alpha: float = 0.3, epsilon: float = 0.1,
                  init_q: float = 0.0, seed: int = 0):
         super().__init__(levels, seed)
         self.alpha, self.epsilon = float(alpha), float(epsilon)

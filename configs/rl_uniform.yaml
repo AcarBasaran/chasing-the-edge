@@ -1,0 +1,12 @@
+# Arm 2/6: UNIFORM RANDOM over all levels 2-20 (controls for "harder problems help" vs "timing matters").
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: uniform_random

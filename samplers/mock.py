@@ -123,13 +123,13 @@ def run_suite(mc: MockConfig):
         "threshold_tau0.1": ("threshold", {"tau": 0.1, "start_level": 11}, 0),
         "threshold_tau0.3": ("threshold", {"tau": 0.3, "start_level": 11}, 0),
         "threshold_tau0.5": ("threshold", {"tau": 0.5, "start_level": 11}, 0),
-        "bandit": ("bandit", {"alpha": 0.1, "epsilon": 0.1}, mc.probe_every),
+        "bandit": ("bandit", {"alpha": 0.3, "epsilon": 0.1}, mc.probe_every),
     }
     if mc.diagnostics:   # non-default variants, to show what each fix buys
         suite.update({
             "threshold_tau0.3_nomemory": ("threshold", {"tau": 0.3, "start_level": 11, "stale_after": 0}, 0),
-            "bandit_alpha0.3": ("bandit", {"alpha": 0.3, "epsilon": 0.1}, mc.probe_every),
-            "bandit_m10": ("bandit", {"alpha": 0.1, "epsilon": 0.1}, 10),
+            "bandit_alpha0.1_spec": ("bandit", {"alpha": 0.1, "epsilon": 0.1}, mc.probe_every),
+            "bandit_m10": ("bandit", {"alpha": 0.3, "epsilon": 0.1}, 10),
         })
     return {name: simulate(mc, m, kw, pe) for name, (m, kw, pe) in suite.items()}
 

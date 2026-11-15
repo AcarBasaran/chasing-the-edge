@@ -1,0 +1,15 @@
+# Arm: THRESHOLD, tau=0.3, delta=0.1 (lo clamp max(tau-delta, tau/2); known-side memory; samplers/core.py).
+# Starts at op 11, the fixed band's first level, so the comparison is clean. patience=2 (DECIDED 2026-11-15).
+# Base p at op11 ~0.49 (T=0.7): tau=0.1 and 0.3 move UP after 2 steps (patience); tau=0.5 (band 0.4-0.6) HOLDS at 11.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: threshold
+    method_kwargs: {tau: 0.3, delta: 0.1, start_level: 11, patience: 2, min_samples: 64}
