@@ -1,0 +1,273 @@
+{
+  "seed": 20261115,
+  "source": "/scratch/ebasaran22/chasing-the-edge/hf_snapshots/composition/test",
+  "sets": {
+    "easy": {
+      "levels": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "per_level": 25,
+      "total": 225
+    },
+    "medium": {
+      "levels": [
+        11,
+        12,
+        13,
+        14
+      ],
+      "per_level": 50,
+      "total": 200
+    },
+    "hard": {
+      "levels": [
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "per_level": 34,
+      "total": 204
+    }
+  },
+  "levels": {
+    "2": {
+      "source_file": "op2-1k.jsonl",
+      "source_sha256": "329804f9a1c5f465d4d47b9077b277a2b9dc1decfbc8ea0599595178ee61c142",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "3": {
+      "source_file": "op3-1k.jsonl",
+      "source_sha256": "461b5e117a558a4f62332507559066764a58155d45bee4e9e7cd2315fea41561",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 1,
+      "op_field_mismatch": 0,
+      "eligible": 999,
+      "picked": 25,
+      "set": "easy"
+    },
+    "4": {
+      "source_file": "op4-1k.jsonl",
+      "source_sha256": "6e33fd368be9bc293002576c29ea07d5aca3a5ada9bd94fc346708dcdc29a0d5",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "5": {
+      "source_file": "op5-1k.jsonl",
+      "source_sha256": "05b61c49c88d009859289ab44374f47d3d576943bd1e017ca0b95e68e559bb4a",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "6": {
+      "source_file": "op6-1k.jsonl",
+      "source_sha256": "8599dda9d4169c92690e1cc722f167c8e2e351ffc887721693718bfe348b36f1",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "7": {
+      "source_file": "op7-1k.jsonl",
+      "source_sha256": "da9de20ddab02452262cfc7a02290c0bed7a9feb00147ae63b6cdc67ea0826de",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "8": {
+      "source_file": "op8-1k.jsonl",
+      "source_sha256": "79c846ec4cc19e96261a5cfc029e22a9eb962b3e520d900123dcbd121a497f2c",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "9": {
+      "source_file": "op9-1k.jsonl",
+      "source_sha256": "3185d0eaa23689f09bdadb0009fbca75978f71280ea5464e0d0fb42e622d1f07",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 25,
+      "set": "easy"
+    },
+    "10": {
+      "source_file": "op10-1k.jsonl",
+      "source_sha256": "6d10d240606e6b02c77dfd0d89f92a5f3d2943a08cf92fe88db88d1639c2356d",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 1,
+      "op_field_mismatch": 0,
+      "eligible": 999,
+      "picked": 25,
+      "set": "easy"
+    },
+    "11": {
+      "source_file": "op11-1k.jsonl",
+      "source_sha256": "a5aedd1e4036b09643d233b1f36393317e94011b4d125e7da15631a309051536",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 50,
+      "set": "medium"
+    },
+    "12": {
+      "source_file": "op12-1k.jsonl",
+      "source_sha256": "d5b61a29b2f18d7c3858df0a3f085bce9263c527dfd74db5fa41e4ca73816c3c",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 50,
+      "set": "medium"
+    },
+    "13": {
+      "source_file": "op13-1k.jsonl",
+      "source_sha256": "b68d713f06892ee7772996a84b73ad9a15d3bf736ee332e9a93d73aa4be412a9",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 50,
+      "set": "medium"
+    },
+    "14": {
+      "source_file": "op14-1k.jsonl",
+      "source_sha256": "dabed14a608dadc90bfbc32b24c1143ce566d2f2aac9a1c1b4c3a956103fb40a",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 50,
+      "set": "medium"
+    },
+    "15": {
+      "source_file": "op15-1k.jsonl",
+      "source_sha256": "673bf9ce50f6d161203b1ac3ef53e1edda76a1747b4616855aef913d4be0f206",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    },
+    "16": {
+      "source_file": "op16-1k.jsonl",
+      "source_sha256": "34701ceb74a8f2d1ac947864dcb13f258ea5f1bfdf23b6e3f7bf6e3038631330",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    },
+    "17": {
+      "source_file": "op17-1k.jsonl",
+      "source_sha256": "c1f6eb2c23444c04a77902893d9bade000c5c6bd6076146d1436067292e211f8",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    },
+    "18": {
+      "source_file": "op18-1k.jsonl",
+      "source_sha256": "7aba6e0419c6c14b42a099a7e0e37cc02618cc88e12a93243ef4ad2bddc64b5a",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    },
+    "19": {
+      "source_file": "op19-1k.jsonl",
+      "source_sha256": "604b45a5ce63ad47f7b9c77250cdf442774573e59c295cd814061ef6d289e192",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    },
+    "20": {
+      "source_file": "op20-1k.jsonl",
+      "source_sha256": "e82900d1d511832867d7bb09ea1028534a2b1bb8704e57f5bcf4d107df80edfb",
+      "source_rows": 1000,
+      "dup_within_test": 0,
+      "overlap_val": 0,
+      "overlap_heldout": 0,
+      "op_field_mismatch": 0,
+      "eligible": 1000,
+      "picked": 34,
+      "set": "hard"
+    }
+  }
+}

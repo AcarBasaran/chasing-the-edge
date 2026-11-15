@@ -218,3 +218,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# model weights and run outputs
+checkpoints/
+*.safetensors
+*.pt
+results/*.jsonl
+wandb/
+outputs/
+# scratch symlinks (trailing-slash patterns above don't match symlinks)
+/outputs
+/checkpoints

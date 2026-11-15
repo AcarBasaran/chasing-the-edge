@@ -1,0 +1,52 @@
+# Gate 1: base-model evaluation (no training).
+# Outputs: results/base_model_p_by_level.csv, results/base_model_correct_token_lengths_by_level.csv,
+#          results/gate1_paper_comparison.csv, eval/base_pass128/*.csv, rows in results/results.csv
+run_id: gate1_base
+run_dir: /scratch/ebasaran22/chasing-the-edge/outputs/gate1_base_eval   # raw rollouts (not committed)
+
+model:
+  hf_repo: Interplay-LM-Reasoning/extrapolation_rl
+  subfolder: id2-10_0.2easy_0.3medium_0.5hard/base
+  # Why this mixture: it is the pretraining mixture of the paper's main
+  # extrapolation experiment (Sec. 3, Fig. 3). Upstream's quick-start for Sec. 3,
+  # scripts/run_scripts/run_composition_rl.sh, pretrains on exactly this config and
+  # runs op7-10 / op9-12 / op11-14 / op17-20 RL from it (script_rl/run_rl_id2-10_0.2easy_0.3medium_0.5hard.sh),
+  # and the README names it as "the underlying pre-training config" for Sec. 3.
+  # The other three mixtures (0.5/0.3/0.2, 0.4995/0.4995/0.001, 0.475/0.475/0.05)
+  # are the Sec. 5 / appendix pretraining-mixture ablations.
+
+data:
+  hf_repo: Interplay-LM-Reasoning/composition
+  p_by_level: val/op{2..20}-200.jsonl     # same split the paper's pretraining-dynamics eval (Fig. 9) uses
+  test_sets: data/testsets/{easy,medium,hard}   # built by eval/build_testsets.py from test/op{L}-1k.jsonl
+
+generation:          # paper App. A.3.3 offline-eval protocol; upstream scripts/eval_checkpoints.py
+  backend: vllm
+  samples_per_problem: 128
+  temperature: 0.7
+  top_p: 1.0
+  top_k: -1
+  max_new_tokens: 1024
+  stop: ["</answer>"]
+  dtype: bfloat16    # upstream auto-resolves bf16 on Ampere; checkpoint is stored fp32
+
+scoring:
+  primary: perfect        # upstream scripts/score_dependency_graphs.py (paper's strict criterion)
+  also: train_reward      # upstream verl/reward_fn.py strict reward (extra nodes also zero it)
+
+# Base-model numbers from the paper, read off figures (no tables exist).
+# Reading error is roughly +-2 percentage points.
+paper_reference:
+  fig3_base:            # pass@k of the base model, Fig. 3 (evaluated on the test split)
+    id_2_10:      {pass@1: 82.5, pass@8: 96.5, pass@128: 99.6}
+    edge_11_14:   {pass@1: 17.0, pass@8: 31.0, pass@128: 43.5}
+    hard_15_20:   {pass@1: 0.0,  pass@8: 0.0,  pass@128: 0.0}
+  fig9_final_ckpt:      # end of pretraining, Fig. 9 (val split)
+    id_2_10:      {pass@1: 87.0, pass@128: 99.5}
+    edge_11_14:   {pass@1: 19.0, pass@128: 42.0}
+    hard_15_20:   {pass@1: 0.0,  pass@128: 0.0}
+    op11:         {pass@1: 49.0, pass@128: 91.0}
+    op12:         {pass@1: 27.0, pass@128: 65.0}
+    op13:         {pass@1: 1.0,  pass@128: 7.0}
+    op14:         {pass@1: 0.0,  pass@128: 0.0}
+  gate_tolerance_pp: 6    # |ours - paper| per band; generous because of figure-reading + sampling noise
