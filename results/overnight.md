@@ -21,3 +21,23 @@
 - Reward-vs-eval mismatch documented; rule: samplers use the TRAINING reward, test metrics use EVAL.
 - Sampler hook: `data.sampler.class_path`/`class_name` → `AbstractCurriculumSampler` (`__init__(data_source, data_config)`, `__iter__`, `__len__`, `update(batch)`), needs `dataloader_num_workers=0`. Clarified that subclassing this published interface is the intended extension point (not a "verl internals" subclass).
 - Chosen mixture + Gate-1 numbers + token-cap finding recorded.
+
+### Gate-1 op12 cross-check (job 2021184)
+- Only failed paper check was medium-test pass@128 (35.5 vs ≈43.5), caused by op12 (0.46 on 50 problems vs 0.675 on val).
+- Full test/op12-1k × 128: pass@1 24.2%, pass@128 62.7% → consistent with val/paper. Unlucky 50-problem draw. Not a reproduction failure.
+- Note for later: medium test set should get more problems per level for per-level pass@128.
+
+### A2 — samplers (`samplers/core.py`, `samplers/verl_adapter.py`)
+- Two layers: pure-Python `DifficultySampler`s (FixedBand, UniformRandom, Threshold, Bandit) + one
+  `EdgeCurriculumSampler(AbstractCurriculumSampler)` adapter: `__init__(data_source, data_config)`,
+  lazy `__iter__` (batch t+1 is drawn only after `update(t)`, needs `dataloader_num_workers=0`),
+  `__len__ = total_steps * train_batch_size`, `update(batch)`.
+- Success = TRAINING reward: `token_level_scores.sum(-1) >= 1` (strict reward is 0/1); level from
+  `extra_info['op']` (fallback `data_source` "difficulty-5B/{op}"). Also logs per-level fraction of
+  informative GRPO groups via `uid`. Log: JSONL at `data.sampler.log_path` + stdout every step.
+- **Probes are in-batch**: on probe steps k prompts/level replace part of the batch → trained on and
+  counted in the same B×n rollout budget as every method. No generation outside the batch.
+  Bandit forces probes (default m=25); others default to none.
+- **Decision — Threshold tau=0.1**: lower bound clamped to `max(tau-delta, 0.5*tau)` → band [0.05, 0.20].
+  Inactive for tau 0.3 ([0.2,0.4]) and 0.5 ([0.4,0.6]), so the sweep differs only in tau.
+- Not implemented: sampler `state_dict` for resuming a killed run (not needed for smoke runs).
