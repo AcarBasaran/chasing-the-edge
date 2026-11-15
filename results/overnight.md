@@ -111,3 +111,20 @@
   worst op18 0.79% (397/50k). ≥49.6k problems kept at every level → not a constraint. Mild bias: the
   dropped problems are the longest prompts (most distractor facts). Not worth changing max_prompt_length.
 - (Ran after B6/B7 finished their jobs; A5's CPU job was queued while B was written.)
+
+### C — Gate 2 environment (in progress)
+- RL pool: `samplers/build_pool.py` → `$EDGE_SCRATCH/data/pool_2k/op{2..20}-2k.jsonl` (seeded 2k/level
+  from heldout, asserted disjoint from test sets). Small pool keeps verl startup fast; both smoke runs use it.
+- Configs: `configs/gate2_fixed_band_smoke.yaml` (upstream op11-14 strict-process recipe scaled to 1 GPU:
+  B 1024→256, mini-batch 256→64 so still 4 updates/step; n=6, T=1.0, lr 1e-6, KL 1e-3 low_var_kl;
+  20 steps, no val, no checkpoints) and `configs/gate2_threshold_smoke.yaml` (same + `data.sampler` hook,
+  all-level pool, tau 0.3 start_level 10, patience 1 so 20 steps can show a move). Launcher `slurm/gate2_smoke.sbatch`.
+- verl deps (`slurm/install_verl_deps.sh`, CPU job): verl imported from `$UPSTREAM` via PYTHONPATH (its
+  setup.py lives inside the package dir; not installed). Problems hit:
+  1. verl's `numpy<2` pin downgraded numpy → broke pandas 3.1 / scipy 1.18 / cupy / opencv (built for numpy 2),
+     and made transformers' lazy imports fail (`cannot import MistralForSequenceClassification`).
+     Decision: restore numpy 2.2.6 and run verl on numpy 2; revisit only if verl itself breaks.
+  2. Prebuilt flash-attn 2.8.3 wheel needs GLIBC 2.32; cluster is RHEL8 / glibc 2.28 → `.so` won't load.
+     verl imports flash_attn unconditionally on CUDA and hard-codes `attn_implementation="flash_attention_2"`,
+     so no way around it without patching verl. Decision: build from source on a compute node
+     (`slurm/build_flash_attn.sh`, cuda/12.6.3 + gnu12, sm80 only — runs on sm86 A40/A6000).

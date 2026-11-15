@@ -1,0 +1,55 @@
+# Gate 2, item 9: same smoke run, but prompts chosen by the Threshold sampler through
+# verl's data.sampler hook (samplers/verl_adapter.py::EdgeCurriculumSampler).
+# Pool = all levels 2-20 (2k each); sampler restricts itself to levels present.
+#
+# tau = 0.3, start_level = 10 (base p ~0.59 at T=0.7, above hi=0.4), so with a working
+# hook the active level should step 10 -> 11 within the first few steps. patience=1 and
+# min_samples=64 so a 20-step smoke run can show movement; real runs use patience=2.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - gate2_fixed_band_smoke
+  - _self_
+
+data:
+  train_files:
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op2-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op3-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op4-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op5-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op6-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op7-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op8-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op9-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op10-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op11-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op12-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op13-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op14-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op15-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op16-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op17-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op18-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op19-2k.jsonl
+    - ${oc.env:EDGE_SCRATCH}/data/pool_2k/op20-2k.jsonl
+  dataloader_num_workers: 0
+  sampler:
+    class_path: ${oc.env:EDGE_REPO}/samplers/verl_adapter.py
+    class_name: EdgeCurriculumSampler
+    method: threshold
+    method_kwargs:
+      tau: 0.3
+      delta: 0.1
+      start_level: 10
+      patience: 1
+      min_samples: 64
+    total_steps: ${trainer.total_training_steps}
+    probe_every: 0
+    probe_prompts_per_level: 4
+    seed: 0
+    log_path: ${oc.env:EDGE_SCRATCH}/outputs/gate2/${trainer.experiment_name}/sampler_log.jsonl
+
+trainer:
+  experiment_name: gate2_threshold_smoke
