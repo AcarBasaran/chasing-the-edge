@@ -19,6 +19,7 @@
 
 set -euo pipefail
 source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+set +u; module load git 2>/dev/null || true; set -u   # git.txt records the repo/upstream hashes
 ARM="${1:?arm}"; SEED="${2:?seed}"; shift 2
 CONFIG="rl_${ARM}"
 [[ -f "${EDGE_REPO}/configs/${CONFIG}.yaml" ]] || { echo "no configs/${CONFIG}.yaml"; exit 2; }
@@ -42,6 +43,9 @@ trap 'cp -r "${RAY_TMPDIR}/session_latest/logs" "${RUN_DIR}/ray_logs_${SLURM_JOB
 # "use a fixed number instead of null when using SLURM"); (2) two local Ray clusters on one node share
 # default agent/worker ports. Fix: start the head ourselves with --num-cpus/--num-gpus and a job-unique
 # port block, then let verl connect via RAY_ADDRESS (ray.init must then get no num_cpus).
+# Ray 2.60 token auth: `ray start` turns it on implicitly, but a driver connecting to an existing cluster
+# does not, and is refused (InvalidAuthToken, job 2067027). Set it explicitly for head, driver and workers.
+export RAY_AUTH_MODE=token
 PORT_BASE=$(( 20000 + (SLURM_JOB_ID % 200) * 200 ))
 "$(dirname "${EDGE_PY}")/ray" start --head --node-ip-address=127.0.0.1 --port="${PORT_BASE}" \
     --num-cpus="${SLURM_CPUS_PER_TASK}" --num-gpus="${NGPU}" --temp-dir="${RAY_TMPDIR}" \
@@ -49,7 +53,8 @@ PORT_BASE=$(( 20000 + (SLURM_JOB_ID % 200) * 200 ))
     --dashboard-agent-grpc-port=$((PORT_BASE + 3)) --dashboard-agent-listen-port=$((PORT_BASE + 4)) \
     --metrics-export-port=$((PORT_BASE + 5)) --runtime-env-agent-port=$((PORT_BASE + 6)) \
     --ray-client-server-port=$((PORT_BASE + 7)) --min-worker-port=$((PORT_BASE + 10)) \
-    --max-worker-port=$((PORT_BASE + 199)) --include-dashboard=false --disable-usage-stats
+    --max-worker-port=$((PORT_BASE + 199)) \
+    --object-store-memory=$((10 * 1024**3)) --include-dashboard=false --disable-usage-stats
 export RAY_ADDRESS="127.0.0.1:${PORT_BASE}"
 
 ARGS=(--config-path "${EDGE_REPO}/configs" --config-name "${CONFIG}"
