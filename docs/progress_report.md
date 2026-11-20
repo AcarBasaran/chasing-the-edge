@@ -182,10 +182,18 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 4. **Range vs schedule** (running, 3 seeds; results expected before Dec 3). Uniform over op 11–17 is exactly the range
    τ=0.1 visited, sampled from step 0 without the schedule. If it matches τ=0.1 on op 18–20, the headline gain
    is the range, not the timing. This is the main objection a reviewer could raise.
-5. **τ = 0.15 and τ = 0.2.** The learning curve peaks at p ≈ 0.10–0.21 (§3.4), and τ=0.1 only samples the
-   lower edge of that range. Running the two τ inside it turns "the one the curve predicts" into a tested claim.
-   Same rule (δ = 0.1, patience 2), so the move-up bounds are 0.25 and 0.30 (target bands [0.075, 0.25] and
-   [0.1, 0.3]). 2 seeds each ≈ 38 GPU-h, 3 seeds ≈ 57 GPU-h.
+5. **τ = 0.15 and τ = 0.2.** The learning curve peaks at p ≈ 0.10–0.21 (§3.4). τ=0.1 moves up at p > 0.2,
+   so it spends its time while p climbs to 0.2. Its realised mean batch p was 0.18 [s0], inside the peak.
+   Testing "the curve predicts the peak" needs arms that *train inside* the peak at different points.
+   **Design caveat (decide before running):** with the current rule (δ = 0.1, patience 2), τ=0.15 and τ=0.2 move
+   up at p > 0.25 and p > 0.30. Both bounds are above the predicted peak, so those arms would straddle it, not
+   train in it. Options:
+   * **smaller δ**: δ = 0.05 gives bands [0.10, 0.20] (τ=0.15) and [0.15, 0.25] (τ=0.2). First rerun the
+     mock harness (samplers/mock.py, CPU only): it caught ping-pong at δ = 0.1, and a tighter band makes that
+     more likely;
+   * **target the band directly**: a rule that trains the level whose last measured p is in [0.10, 0.21]
+     (the lowest such level, or the closest to 0.15), so the hypothesis is the sampler itself.
+   Cost either way: 2 seeds each ≈ 38 GPU-h, 3 seeds ≈ 57 GPU-h.
 6. **τ=0.5 fix point.** Mostly answered by §3.4: op 11's ceiling (≈ 0.57 at T = 1) is below the move-up bound
    (0.6), so the target sits above what the level can reach. A rerun with δ = 0.05 is low priority.
 7. **Per-problem selection** (future work, noted in Gate 1). Within a level, problems are mostly always or
