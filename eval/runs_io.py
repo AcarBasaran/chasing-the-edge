@@ -26,13 +26,15 @@ TEST_SETS = ("test_easy", "test_medium", "test_hard")
 SET_LABEL = {"test_easy": "easy (op 2-10)", "test_medium": "medium (op 11-14)", "test_hard": "hard (op 15-20)"}
 
 # Fixed display order and colours: colour follows the method, never its rank or which runs exist.
-METHODS = ["base", "released_rl", "fixed_band", "uniform", "threshold_tau1", "threshold_tau3",
+METHODS = ["base", "released_rl", "fixed_band", "uniform", "uniform_11_17", "threshold_tau1", "threshold_tau3",
            "threshold_tau5", "bandit"]
 METHOD_LABEL = {"base": "base model", "released_rl": "paper's RL\n(released)", "fixed_band": "fixed band\n11-14",
-                "uniform": "uniform\nrandom", "threshold_tau1": "threshold\nτ=0.1", "threshold_tau3": "threshold\nτ=0.3",
+                "uniform": "uniform\nrandom", "uniform_11_17": "uniform\nop 11-17", "threshold_tau1": "threshold\nτ=0.1", "threshold_tau3": "threshold\nτ=0.3",
                 "threshold_tau5": "threshold\nτ=0.5", "bandit": "bandit"}
 NEUTRAL, NEUTRAL_DARK = "#b5b4ad", "#52514e"
 METHOD_COLOR = {"base": NEUTRAL, "released_rl": NEUTRAL_DARK, "fixed_band": "#2a78d6", "uniform": "#eb6834",
+                # uniform_11_17: orange-ramp dark step, CVD-checked vs every arm (min OKLab dE 17); green failed vs orange
+                "uniform_11_17": "#9a3b12",
                 "threshold_tau1": "#1baf7a", "threshold_tau3": "#eda100", "threshold_tau5": "#e87ba4",
                 "bandit": "#6250d6"}
 RUN_ID = re.compile(r"^(?P<arm>.+?)_s(?P<seed>\d+)(?:_.*)?$")

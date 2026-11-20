@@ -1,6 +1,6 @@
 # Compute budget and project scale
 
-Status 2026-11-15: **ESTIMATE** from the 1-GPU smoke run. It is updated with the measured 4-GPU step time
+Status 2026-11-20: **actuals below** (section "Actuals and projection"). Original status 2026-11-15: ESTIMATE from the 1-GPU smoke run. It is updated with the measured 4-GPU step time
 once job 2024783 (5-step 4-GPU validation run) finishes. Recompute with
 `python eval/budget.py --sec-per-step-4gpu <measured>`.
 
@@ -49,3 +49,29 @@ the Gate-3 extension of the baseline to 195 steps, and longer runs for the best 
   the baseline's step-100 checkpoint is an exact 100-step run, and extending it to 195 steps for Gate 3 is cheap.
 * What to cut first if the queue is worse than assumed: seed 2, then τ=0.1 (CLAUDE.md order: seeds, test-set
   size, τ sweep, steps).
+
+## Actuals and projection (2026-11-20)
+
+Measured on one A40 per run (`sacct`, GPU-hours = elapsed × GPUs):
+
+| item | GPU-h |
+|---|---|
+| spent so far, all GPU jobs since Nov 14 | **104.7** |
+| ... of which the two hung jobs 2026026/2026027 (24 h each, no training) | 48.0 |
+| per training run, measured (seed 0): fixed 8.4, τ=0.3 8.5, uniform 7.2, τ=0.1 9.3, τ=0.5 7.1 | mean 8.1 |
+| pass@128 eval per run (3 test sets) | 0.5 |
+
+Projection to the end of the plan, counting what is still running or queued:
+
+| | GPU-h |
+|---|---|
+| bandit × 3, seed 1 × 5, seed 2 × 5 (incl. evals), minus the 9.4 h already in the running jobs | 102 |
+| fixed-band checkpoint re-evaluation (informative share over training) | 2.5 |
+| **control: uniform op 11–17 × 3 seeds** (~8.8 h each, between fixed band and τ=0.1) + evals | **28** |
+| **total incl. control** | **≈ 237** (≈ 189 without the 48 h lost to the hang) |
+| **cut τ=0.5 seeds 1–2** (it never moves; 3 seeds buy nothing) | **−15** |
+| **total after the cut** | **≈ 222** (≈ 174 without the hang) |
+
+Against the experimental plan, the control fits after the cut (174 ≤ 200). Against everything the
+allocation has actually burned, it does not (222 > 200), because of the 48 h hang. DECIDED 2026-11-20:
+τ=0.5 cut to one seed. The next cut, if needed, follows CLAUDE.md order (seeds of the other arms).

@@ -33,7 +33,7 @@ from runs_io import METHOD_COLOR, REPO, discover, load_per_problem, method_sort_
 
 LEVELS = (15, 16, 17, 18, 19, 20)
 POOLS = {"15-17": (15, 16, 17), "18-20": (18, 19, 20)}
-LABEL = {"fixed_band": "fixed band 11–14", "uniform": "uniform random 2–20", "threshold_tau1": "threshold τ=0.1",
+LABEL = {"fixed_band": "fixed band 11–14", "uniform": "uniform random 2–20", "uniform_11_17": "uniform op 11–17", "threshold_tau1": "threshold τ=0.1",
          "threshold_tau3": "threshold τ=0.3", "threshold_tau5": "threshold τ=0.5", "bandit": "bandit",
          "released_rl": "paper's RL (released)"}
 
@@ -144,7 +144,7 @@ def plot(rows, out: Path) -> None:
 
     # Left: pass@128 per hard level. Hollow marker = the arm trained on that level, filled = never trained there.
     ax.axvspan(17.5, 20.5, color=GRID, lw=0, zorder=0)
-    ax.text(19, 1.0, "never trained on by\nτ=0.1, τ=0.3, fixed band", ha="center", va="top", fontsize=6.8,
+    ax.text(19, 1.0, "never trained on by τ=0.1,\nτ=0.3, fixed band, uniform 11–17", ha="center", va="top", fontsize=6.8,
             color=INK2, transform=ax.get_xaxis_transform())
     for arm in arms:
         col = METHOD_COLOR.get(arm, INK2)
