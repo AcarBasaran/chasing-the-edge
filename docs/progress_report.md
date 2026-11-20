@@ -80,6 +80,11 @@ solved. τ=0.1 spent its budget on op 15–17 while those were at the edge (25% 
 Within seed 0 only, paired by problem: τ=0.1 newly solves 9 problems uniform does not, and uniform 1 that
 τ=0.1 does not. Seed-to-seed variance is not included; the pooled test across seeds will replace this.
 
+**Not more gradient, gradient in a different place.** Pooled over the run, τ=0.1 had a *lower* share of
+groups with nonzero gradient (25.0% [s0]) than the fixed band (35.4%), τ=0.3 (33.9%) and τ=0.5 (40.1%); only
+uniform was lower (18.8%). What differs is where the informative groups were. Beyond op 14, τ=0.1 had 20,739
+informative groups, uniform 2,783, every other arm 0 [s0]. That ordering matches op 18–20 newly solved.
+
 ### 3.2 How much is "harder problems at all" vs adaptive timing
 
 | arm | hard pass@128 | gain over fixed band | hard newly solved (of 204) |
@@ -107,7 +112,18 @@ margin (+8.4 points, 17 problems [s0]), and it sits on the levels beyond τ=0.1'
 * **τ=0.3 found the paper's band on its own** and matches it (51 vs 48 newly solved [s0]). If seeds confirm
   this, it is a positive finding about the paper's hand-picked band: it is where a τ=0.3 rule settles.
 
-### 3.4 Costs
+### 3.4 The bandit: the arm being trained generates its own reward
+
+The bandit (reward = improvement in p between probes) is the weakest trained arm: hard newly solved
+40.7 ± 3.5 over 3 seeds, vs 48 for the fixed band. The arm it trains improves because it is trained, so the
+greedy choice pays itself and keeps 90% of every batch. op 15 became learnable anyway (probe p = 0.31 by
+step 50 in seed 0) and reached second place in Q, but an argmax gives second place nothing. After the first
+value update (step 25), op 15+ was sampled only by ε-exploration, at exactly the ε floor of 3.2% of prompts,
+in all 3 seeds. Probe noise (SE ≈ 0.09 against Q margins of about 0.01) makes the order among op 12–15
+partly chance. The trained arm's head start is not chance. Details and the m = 10 ablation:
+docs/bandit_analysis.md.
+
+### 3.5 Costs
 
 * τ=0.1 is slightly less reliable on easier sets: medium pass@1 46.9 vs 49.2, easy pass@1 84.0 vs 85.5 [s0].
   Medium pass@128 is equal.
@@ -138,8 +154,11 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 ## 6. What is still running
 
-* Bandit, seeds 0–2.
-* Seeds 1 and 2 of the five other arms. They are submitted automatically within the cluster's 50-job limit.
+* Bandit ablation with probe interval m = 10 (one seed, 50 steps; docs/bandit_analysis.md §4).
+* Seeds 1 and 2 of fixed band, uniform, τ=0.1 and τ=0.3. τ=0.5 stays at one seed: it never leaves op 11,
+  so more seeds would buy nothing (budget decision, 2026-11-20).
+* Control: uniform over op 11–17, seeds 0–2, queued behind the above.
+* Runs are submitted automatically within the cluster's 50-job limit.
 * Checkpoint re-evaluation of the fixed band at steps 25/50/75/100 on levels 9–17, for the all-levels version
   of §4.
 * `eval/aggregate_seeds.py` turns every new seed into mean ± spread per arm and a pooled problem-level paired
@@ -149,12 +168,13 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 1. **Seeds.** Confirm or retract §3 with 3 seeds per arm. Replace every [s0] tag with mean ± spread. Report the
    pooled paired test for τ=0.1 vs uniform on op 18–20.
-2. **Bandit.** Analyse where it goes and whether its probe interval (m = 25, set from the measured edge
-   speed) is fast enough. For the first 25 steps it is uniform by construction.
+2. **Bandit.** Done for m = 25 (§3.4). An m = 10 ablation (one seed, 50 steps) tests whether the probe interval
+   explains it. Optimistic initialisation of unvisited arms is a candidate fix, not run.
 3. **Longer runs.** 100 steps is half the paper's run. Extend the best arm and the fixed band to ~200 steps:
    does the fixed band catch up, or does the gap widen?
-4. **A control for exposure vs extrapolation.** Uniform over op 11–17 (the range τ=0.1 visited, without the
-   timing). If it matches τ=0.1 on op 18–20, the gain is the range, not the schedule.
+4. **Range vs schedule** (queued, 3 seeds; results likely before Dec 3 if GPUs free up as expected). Uniform over op 11–17 is exactly the range
+   τ=0.1 visited, sampled from step 0 without the schedule. If it matches τ=0.1 on op 18–20, the headline gain
+   is the range, not the timing. This is the main objection a reviewer could raise.
 5. **τ=0.5 fix point.** Rerun with δ = 0.05 or patience 1 to separate "the target is wrong" from "the rule
    cannot move".
 6. **Per-problem selection** (future work, noted in Gate 1). Within a level, problems are mostly always or

@@ -1,0 +1,18 @@
+# Ablation of arm 6 (BANDIT): identical to rl_bandit.yaml except the probe interval m = 10 instead of 25.
+# Question: is the bandit's failure to ever pick op15+ greedily (3/3 seeds at m=25) just a slow probe grid,
+# or structural to an improvement-rate reward (arms at p=0 earn r=0; the trained arm earns the most)?
+# Run with trainer.total_training_steps=50: lr is constant, so steps 1-50 match the first half of a
+# 100-step run, and tau=0.1 had reached op16 by step 22. Sampler behaviour only, no test-set eval.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: bandit
+    method_kwargs: {alpha: 0.3, epsilon: 0.1}
+    probe_every: 10

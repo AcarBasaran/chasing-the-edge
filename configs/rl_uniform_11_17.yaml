@@ -1,0 +1,16 @@
+# Arm 7: UNIFORM over op 11-17 (control added 2026-11-20). Separates "range" from "schedule":
+# Threshold tau=0.1 visited exactly op 11-17 (seed 0) in a moving schedule; this arm trains on the same range
+# uniformly from step 0, with no timing. If it matches tau=0.1 on op 18-20 (levels neither trains on), the
+# headline gain is the range, not the schedule. Same sampler class as the fixed band, wider level list.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: fixed_band
+    method_kwargs: {levels: [11, 12, 13, 14, 15, 16, 17]}
