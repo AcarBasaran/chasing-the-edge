@@ -1,4 +1,12 @@
-# The bandit chases learning, not headroom (2026-11-20)
+# The bandit's trained arm generates its own reward (2026-11-20)
+
+**Finding.** The bandit's reward is the improvement rate between probes, r_L = p_L(t) − p_L(t−m). The arm it
+trains is the arm that improves, *because* it is trained, so the greedy choice pays itself. By step 50,
+op 15 had become learnable without the greedy rule ever choosing it: probe p = 0.31 in seed 0 (0.29 and 0.10 in seeds 1
+and 2), and its Q was **second** (+0.094 against op 13's +0.102). Under an argmax, second place gets nothing.
+op 15 stayed at the ε floor, and op 13, the arm already being trained, kept 90% of every batch. After the
+first value update, the greedy choice never went beyond op 14 in any of 3 seeds. The bandit ended below the
+fixed band.
 
 **3 seeds (bandit), m = 25.** The m = 10 ablation is running (§4). Figure: `results/bandit_q.png`;
 data: `results/bandit_q.csv` (Q, p and probe n per arm per probe), `results/bandit_phases.csv`.
@@ -16,25 +24,23 @@ The bandit is the weakest trained arm, below the fixed band, consistently across
 
 This is a property of its objective, not a bug. We do not tune it away.
 
-## 2. Mechanism: the reward credits the arm for the training it received
+## 2. Mechanism: the arm being trained generates its own reward
 
-The bandit's reward is the improvement rate between probes, r_L = p_L(t) − p_L(t−m). Two facts make that
-reward point away from headroom:
+* **Self-reinforcement (the main effect).** The greedy arm gets 90% of every batch (1 − ε plus its share of
+  ε). Training raises its p, the rise is its reward, and the reward keeps it greedy. In seed 0, op 13 went
+  from p = 0.28 at step 25 to 0.42 at step 50 under that training and stayed the argmax for the whole run.
+  Any other arm can only improve through spill-over from the trained arm, which is smaller by construction.
+* **A learnable competitor still loses.** Spill-over did make op 15 learnable: probe p 0.31 / 0.29 / 0.10
+  at step 50 (seeds 0/1/2), Q in second or third place (seed 0: op 15 +0.094 vs op 13 +0.102; seed 2 at
+  step 75: op 15 +0.090 vs op 12 +0.114). It never won the argmax, so it got no batch share beyond ε.
+* **Zero signal at p = 0 (the smaller, earlier effect).** At the first value update (step 25), op 15–17 had
+  probe p = 0.00–0.02 at both probes (exactly 0 in seed 0), so Q ≈ 0. That decided who got the first head
+  start: op 12–14, which uniform sampling in steps 1–24 had just improved.
 
-1. **An arm at p = 0 earns exactly r = 0.** At the first value update (step 25), op 15–17 had probe
-   p = 0.00–0.02 at both probes (exactly 0 in seed 0), so Q ≈ 0. The arms that uniform sampling in steps
-   1–24 had just improved (op 12–14) took the lead.
-2. **The arm being trained earns the largest r, because training on it is what raises its p.** The greedy
-   arm gets 90% of every batch (1 − ε plus its share of ε). In seed 0, op 13 rose from p = 0.28 (step 25) to
-   0.42 (step 50) under that training, which kept its Q on top. Rich get richer: the argmax stays where learning is already
-   happening, which is where headroom is smallest.
-
-**Correction to the simple version of the hypothesis.** op 15–17 do *not* stay at p = 0. Training on op 13
-spilled over, and by step 50 op 15 had probe p = 0.31 / 0.29 / 0.10 (seeds 0/1/2). Its Q rose to second or
-third place (seed 0: op 15 +0.094 vs op 13 +0.102; seed 2 at step 75: op 15 +0.090 vs op 12 +0.114). It
-never won the argmax. The gap at the top is small compared with probe noise: about 24–70 rollouts per level
-per probe gives SE ≈ 0.09 on p ≈ 0.3. So *which* of op 12–15 wins is partly noise. What is not noise is
-that the trained arm starts ahead and an argmax gives the runner-up nothing.
+**Probe noise.** Each probe measures a level with about 24–70 rollouts, so SE ≈ 0.09 on p ≈ 0.3. The Q
+margins at the top are about 0.01. So the *ordering among op 12–15* is partly chance. The trained arm's head
+start is not. It comes from the 90% of the batch it receives, not from a lucky probe, and it is present in
+all 3 seeds.
 
 ## 3. Who sampled op 15+: ε only
 
@@ -67,11 +73,11 @@ so it stays future work.
 Learning-progress curricula (reward = Δ success) are attractive because they need no target success
 rate. Two structural properties make them a poor fit for finding new ability with GRPO:
 
-* **Zero signal exactly where new ability starts.** A level the model cannot solve yet has p = 0 and
-  r = 0, the same as a level it has mastered. Until generalisation lifts p above 0, the bandit cannot tell
-  the frontier from the solved levels.
 * **Self-reinforcement.** Training on an arm is what makes it improve. Improvement-rate reward therefore
-  credits the policy's own choice and locks it in.
+  credits the policy's own choice and locks it in. A level that becomes learnable elsewhere has to beat
+  an arm that receives 90% of the training, and with an argmax a close second gets nothing.
+* **Zero signal where new ability starts.** A level the model cannot solve yet has p = 0 and r = 0, the
+  same as a level it has mastered. This decides the initial head start.
 
 Compare the threshold rule, which reacts to the *level* of p (move up when p > τ + δ). It advances once the
 current level is easy enough, whether or not that level is still improving.

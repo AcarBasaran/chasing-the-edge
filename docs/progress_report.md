@@ -112,13 +112,15 @@ margin (+8.4 points, 17 problems [s0]), and it sits on the levels beyond τ=0.1'
 * **τ=0.3 found the paper's band on its own** and matches it (51 vs 48 newly solved [s0]). If seeds confirm
   this, it is a positive finding about the paper's hand-picked band: it is where a τ=0.3 rule settles.
 
-### 3.4 The bandit: learning speed is the wrong target
+### 3.4 The bandit: the arm being trained generates its own reward
 
 The bandit (reward = improvement in p between probes) is the weakest trained arm: hard newly solved
-40.7 ± 3.5 over 3 seeds, vs 48 for the fixed band. After its first value update (step 25) the greedy
-choice never went beyond op 14 in any seed. op 15+ was sampled only by ε-exploration, at exactly the
-ε floor of 3.2% of prompts. Two reasons. A level at p = 0 shows zero improvement. The level being trained
-improves *because* it is trained, so the argmax locks onto it. Details and the m = 10 ablation:
+40.7 ± 3.5 over 3 seeds, vs 48 for the fixed band. The arm it trains improves because it is trained, so the
+greedy choice pays itself and keeps 90% of every batch. op 15 became learnable anyway (probe p = 0.31 by
+step 50 in seed 0) and reached second place in Q, but an argmax gives second place nothing. After the first
+value update (step 25), op 15+ was sampled only by ε-exploration, at exactly the ε floor of 3.2% of prompts,
+in all 3 seeds. Probe noise (SE ≈ 0.09 against Q margins of about 0.01) makes the order among op 12–15
+partly chance. The trained arm's head start is not chance. Details and the m = 10 ablation:
 docs/bandit_analysis.md.
 
 ### 3.5 Costs

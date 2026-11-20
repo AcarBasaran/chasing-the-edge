@@ -78,3 +78,23 @@ allocation has actually burned, it does not (222 > 200), because of the 48 h han
 
 Added 2026-11-20: bandit ablation m = 10, one seed, 50 steps, no eval: **≈ 4 GPU-h** → ≈ 226 total
 (≈ 178 without the hang). Bandit seeds 0–2 ran 7.5–8.5 h each, as projected.
+
+## Where the remaining budget goes (2026-11-20 13:20)
+
+The 200 GPU-h ceiling is our planning number (Scale B). SLURM enforces no GPU-hour limit on this account
+(QoS `ai`: 8 GPUs and 8 running jobs per user only).
+
+| | GPU-h |
+|---|---|
+| spent so far (sacct, incl. the running jobs' elapsed time) | 165.6 |
+| of which lost to the Ray hang | 48 |
+| left in the 8 running jobs (τ=0.1 s1+s2 12.8, uniform s2 5.0, fixed band s2 5.7, τ=0.3 s2 6.0, control s0+s1 13.7, bandit m10 3.2) | ≈ 46 |
+| control seed 2 (queued, not started) | ≈ 8.8 |
+| test-set evals for the 8 remaining runs (≈ 0.5 each) | ≈ 4 |
+| **projected total for Dec 3** | **≈ 225** (≈ 177 without the hang) |
+| January plan (2 × 200-step runs ≈ 35, τ=0.5 δ/patience rerun ≈ 8) | ≈ 43 more, not in the 225 |
+
+Cut options if 200 is firm, in order of least scientific cost (only what has not been spent yet is saved):
+fixed band s2 (−6.2; seeds 0 and 1 are identical at 48/48 newly solved), τ=0.3 s2 (−6.5; not central),
+bandit m10 (−3.4), control s2 (−9.3; leaves the range-vs-schedule control at 2 seeds). All four ≈ −25,
+which gives ≈ 200. τ=0.1 s1/s2 and uniform s2 are not on the list.
