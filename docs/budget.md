@@ -115,3 +115,6 @@ which gives ≈ 200. τ=0.1 s1/s2 and uniform s2 are not on the list.
 | left in the 6 running runs (τ=0.1 s1 ~1.5, s2 ~2.8, uniform s2 ~0.9, control s0 ~2.2, s1 ~2.8, s2 ~8.3) | ≈ 18.5 |
 | test-set evals for those 6 runs | ≈ 3 |
 | **projected total for Dec 3** | **≈ 219** (≈ 171 without the 48 h hang) |
+
+January candidates (own budget, not in the 219): τ = 0.15 and 0.2 (2 seeds each ≈ 38 GPU-h, 3 ≈ 57), the bandit
+self-reward fix (≈ 25), 2 × 200-step runs (≈ 35), τ=0.5 δ/patience rerun (≈ 8).

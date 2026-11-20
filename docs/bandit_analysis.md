@@ -116,7 +116,7 @@ What this means:
   steepest rise is at p ≈ 0.10–0.21 for every level that starts at p ≈ 0, at 30–50% of the level's plateau.
   That is τ=0.1's target band [0.05, 0.2]. Of the three τ we ran, τ=0.1 is the one whose band contains the
   measured peak, and it is the one that won. (τ between 0.1 and 0.3 was not run, so "best of the three
-  tested, and predicted by the curve", not "the optimum".)
+  tested, and predicted by the curve", not "the optimum". τ = 0.15 and 0.2 are January work.)
 * **Levels plateau at p ≈ 0.35–0.58 under the training reward at T = 1.0, not at 1.** The τ=0.5 band
   [0.4, 0.6] is the *ceiling* of these curves, not the half-solved midpoint, and improvement there is ≈ 0.
   τ=0.5 maximises informative groups by sitting on a plateau. It also explains why τ=0.5 never moved: op 11
