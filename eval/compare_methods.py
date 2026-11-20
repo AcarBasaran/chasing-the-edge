@@ -75,39 +75,47 @@ def plot(rows, out: Path):
 
     INK, INK2, SURF, GRID = "#0b0b0b", "#52514e", "#fcfcfb", "#e6e5e0"
     methods = sorted({r["method"] for r in rows}, key=method_sort_key)
-    fig, axes = plt.subplots(len(PLOT_KS), len(TEST_SETS), figsize=(3.4 * len(TEST_SETS), 2.9 * len(PLOT_KS)),
+    # Horizontal bars: method names sit on the y axis, once per row, so they never collide.
+    fig, axes = plt.subplots(len(PLOT_KS), len(TEST_SETS),
+                             figsize=(3.3 * len(TEST_SETS) + 1.2, (0.3 * len(methods) + 0.9) * len(PLOT_KS)),
                              dpi=150, facecolor=SURF, squeeze=False)
+    ys = list(range(len(methods)))[::-1]          # first method on top
     for i, k in enumerate(PLOT_KS):
         for j, split in enumerate(TEST_SETS):
             ax = axes[i][j]
             ax.set_facecolor(SURF)
-            for x, m in enumerate(methods):
+            top = max([r[f"pass@{k}"] for r in rows if r["split"] == split] + [1.0])
+            for y, m in zip(ys, methods):
                 vals = [r[f"pass@{k}"] for r in rows if r["method"] == m and r["split"] == split]
                 if not vals:
                     continue
                 mean = sum(vals) / len(vals)
                 col = METHOD_COLOR.get(m, INK2)
-                ax.bar(x, mean, width=0.7, color=col, edgecolor=SURF, linewidth=2, zorder=2)
+                ax.barh(y, mean, height=0.7, color=col, edgecolor=SURF, linewidth=2, zorder=2)
                 if len(vals) > 1:
-                    ax.vlines(x, min(vals), max(vals), color=INK, lw=1.2, zorder=3)
-                    ax.scatter([x] * len(vals), vals, s=12, color=SURF, edgecolor=INK, linewidth=0.8, zorder=4)
-                ax.annotate(f"{mean:.1f}", (x, max(vals)), textcoords="offset points", xytext=(0, 3),
-                            ha="center", fontsize=6.5, color=INK)
-            ax.set_xticks(range(len(methods)))
-            ax.set_xticklabels([METHOD_LABEL.get(m, m) for m in methods], fontsize=6.5, color=INK2)
-            ax.tick_params(axis="y", labelsize=7, colors=INK2)
-            top = max([r[f"pass@{k}"] for r in rows if r["split"] == split] + [1.0])
-            ax.set_ylim(0, min(105, top * 1.18 + 1))
-            ax.grid(axis="y", color=GRID, lw=0.6)
+                    ax.hlines(y, min(vals), max(vals), color=INK, lw=1.2, zorder=3)
+                    ax.scatter(vals, [y] * len(vals), s=12, color=SURF, edgecolor=INK, linewidth=0.8, zorder=4)
+                ax.annotate(f"{mean:.1f}", (max(vals), y), textcoords="offset points", xytext=(3, 0),
+                            va="center", fontsize=6.5, color=INK)
+            ax.set_yticks(ys)
+            ax.set_yticklabels([METHOD_LABEL.get(m, m).replace("\n", " ") for m in methods] if j == 0 else [],
+                               fontsize=7, color=INK)
+            ax.tick_params(axis="y", length=0)
+            ax.tick_params(axis="x", labelsize=7, colors=INK2)
+            ax.set_xlim(0, min(112, top * 1.15 + 2))
+            ax.grid(axis="x", color=GRID, lw=0.6)
             ax.set_axisbelow(True)
-            for s in ("top", "right"):
-                ax.spines[s].set_visible(False)
-            for s in ("left", "bottom"):
-                ax.spines[s].set_color(NEUTRAL)
+            for s_ in ("top", "right"):
+                ax.spines[s_].set_visible(False)
+            for s_ in ("left", "bottom"):
+                ax.spines[s_].set_color(NEUTRAL)
             if i == 0:
                 ax.set_title(SET_LABEL[split], fontsize=9, color=INK, loc="left")
-            if j == 0:
-                ax.set_ylabel(f"pass@{k} (%)", fontsize=8.5, color=INK)
+            if i == len(PLOT_KS) - 1:
+                ax.set_xlabel("%", fontsize=7.5, color=INK2)
+            if j == len(TEST_SETS) - 1:
+                ax.yaxis.set_label_position("right")
+                ax.set_ylabel(f"pass@{k}", fontsize=8.5, color=INK, rotation=270, labelpad=12)
     n_seeds = max(len({r["seed"] for r in rows if r["method"] == m}) for m in methods)
     fig.suptitle("Test-set accuracy by method (strict process-verified scoring, T=0.7, 128 samples per problem"
                  + (f"; bars = mean over seeds, dots = seeds, line = range)" if n_seeds > 1 else ")"),

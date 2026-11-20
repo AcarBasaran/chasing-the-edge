@@ -3,14 +3,14 @@
 # QoS `ai` allows 50 submitted jobs per user (array tasks count one each). One run with its post_run chain
 # is 6 jobs (train, merge, 3 eval tasks, analyse), so runs cannot all be submitted at once.
 # Queue file: $EDGE_SCRATCH/outputs/pending_runs.txt, one "<arm> <seed>" per line.
-# Submits while (submitted jobs + 6) <= 50 - HEADROOM (HEADROOM=1 keeps a slot for this script to resubmit itself), then,
+# Submits while (submitted jobs + 6) <= 50 - HEADROOM (HEADROOM=3: one slot for this script to resubmit itself, two for ad-hoc analysis jobs), then,
 # if lines remain, resubmits itself as a CPU job to try again in 30 minutes.
 #   bash slurm/drain_queue.sh            (login node or compute node; only calls sbatch)
 set -euo pipefail
 source /home/ebasaran22/chasing-the-edge/slurm/env.sh
 cd "${EDGE_REPO}"
 Q="${EDGE_SCRATCH}/outputs/pending_runs.txt"
-LIMIT=50; HEADROOM="${HEADROOM:-1}"; PER_RUN=6
+LIMIT=50; HEADROOM="${HEADROOM:-3}"; PER_RUN=6
 # 1-GPU run peaks at ~13 GB RSS (+ <=10 GB Ray object store); 40G lets 8 runs fit the 350G per-user cap.
 RUN_OPTS=(--gres=gpu:1 --cpus-per-task=12 --mem=40G --time=16:00:00)
 

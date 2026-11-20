@@ -1,0 +1,16 @@
+run_a,run_b,only_a,only_b,mcnemar_exact_p
+released_rl,fixed_band_s0,1,2,1.0
+released_rl,uniform_s0,0,14,0.0001
+released_rl,threshold_tau1_s0,0,22,0.0
+released_rl,threshold_tau3_s0,1,1,1.0
+released_rl,threshold_tau5_s0,5,0,0.0625
+fixed_band_s0,uniform_s0,1,14,0.001
+fixed_band_s0,threshold_tau1_s0,1,22,0.0
+fixed_band_s0,threshold_tau3_s0,1,0,1.0
+fixed_band_s0,threshold_tau5_s0,6,0,0.0312
+uniform_s0,threshold_tau1_s0,1,9,0.0215
+uniform_s0,threshold_tau3_s0,14,0,0.0001
+uniform_s0,threshold_tau5_s0,19,0,0.0
+threshold_tau1_s0,threshold_tau3_s0,22,0,0.0
+threshold_tau1_s0,threshold_tau5_s0,27,0,0.0
+threshold_tau3_s0,threshold_tau5_s0,5,0,0.0625
