@@ -120,8 +120,14 @@ greedy choice pays itself and keeps 90% of every batch. op 15 became learnable a
 step 50 in seed 0) and reached second place in Q, but an argmax gives second place nothing. After the first
 value update (step 25), op 15+ was sampled only by ε-exploration, at exactly the ε floor of 3.2% of prompts,
 in all 3 seeds. Probe noise (SE ≈ 0.09 against Q margins of about 0.01) makes the order among op 12–15
-partly chance. The trained arm's head start is not chance. Details and the m = 10 ablation:
-docs/bandit_analysis.md.
+partly chance. The trained arm's head start is not chance. A faster probe interval (m = 10, one seed) does not change it: the
+bandit locked onto op 12 even earlier, and op 15+ again got only the ε floor.
+
+Where a level improves fastest: a level's success rate rises in an S, steepest at p ≈ 0.1–0.2 and flat at
+a plateau of about 0.35–0.58 (training reward, T = 1.0) [fixed band s0–s1, uniform s0–s1]. τ=0.5's band is the
+plateau. τ=0.1's band is the steep part. The bandit aims at the steep part, but it measures improvement after
+the fact, so it trains the level that just finished rising. Details: docs/bandit_analysis.md §4 and §6.
+Fixes (softmax selection, optimistic initialisation, removing the self-reward loop) are January work (§7).
 
 ### 3.5 Costs
 
@@ -154,7 +160,6 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 ## 6. What is still running
 
-* Bandit ablation with probe interval m = 10 (one seed, 50 steps; docs/bandit_analysis.md §4).
 * Seeds 1 and 2 of fixed band, uniform, τ=0.1 and τ=0.3. τ=0.5 stays at one seed: it never leaves op 11,
   so more seeds would buy nothing (budget decision, 2026-11-20).
 * Control: uniform over op 11–17, seeds 0–2, queued behind the above.
@@ -168,8 +173,8 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 1. **Seeds.** Confirm or retract §3 with 3 seeds per arm. Replace every [s0] tag with mean ± spread. Report the
    pooled paired test for τ=0.1 vs uniform on op 18–20.
-2. **Bandit.** Done for m = 25 (§3.4). An m = 10 ablation (one seed, 50 steps) tests whether the probe interval
-   explains it. Optimistic initialisation of unvisited arms is a candidate fix, not run.
+2. **Bandit fixes.** Softmax selection, optimistic initialisation, and removing the self-reward loop (the real fix),
+   3 seeds each, ≈ 25 GPU-h per fix (docs/bandit_analysis.md §7).
 3. **Longer runs.** 100 steps is half the paper's run. Extend the best arm and the fixed band to ~200 steps:
    does the fixed band catch up, or does the gap widen?
 4. **Range vs schedule** (queued, 3 seeds; results likely before Dec 3 if GPUs free up as expected). Uniform over op 11–17 is exactly the range

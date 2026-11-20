@@ -65,6 +65,22 @@ mkdir -p "${GEN_DIR}" "${GRAPH_DIR}"
 echo "[task ${TASK}] ${NAME} model=${MODEL} T=${TEMP} k=${SAMPLE_K} data=${DATA_ROOT} host=$(hostname)"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
 START=$(date +%s)
+# Stall watchdog (user rule 2026-11-20): cancel this task if its SLURM log has not been written for STALL_MIN
+# minutes (default 30). vLLM writes progress to it every few seconds during generation; scoring takes ~2 min.
+STALL_MIN="${STALL_MIN:-30}"
+OUT_LOG="${EDGE_SCRATCH}/logs/${SLURM_JOB_NAME:-x}-${SLURM_ARRAY_JOB_ID:-x}_${SLURM_ARRAY_TASK_ID:-x}.out"
+[[ -f "${OUT_LOG}" ]] || OUT_LOG=$(scontrol show job "${SLURM_JOB_ID}" | grep -o 'StdOut=[^ ]*' | cut -d= -f2-)
+( while sleep 60; do
+    [[ -f "${OUT_LOG}" ]] || continue
+    age=$(( $(date +%s) - $(stat -c %Y "${OUT_LOG}") ))
+    (( age > STALL_MIN * 60 )) || continue
+    echo "[gate1_eval] WATCHDOG: log not written for $(( age / 60 )) min -- cancelling ${SLURM_JOB_ID}"
+    echo "$(date -Is) CANCEL(in-job) ${SLURM_JOB_ID} ${SLURM_JOB_NAME:-eval} task ${TASK}: log not written for $(( age / 60 )) min" \
+      >> "${EDGE_SCRATCH}/outputs/watchdog.log"
+    scancel "${SLURM_JOB_ID}"; exit 0
+  done ) &
+WATCHDOG_PID=$!
+trap 'kill "${WATCHDOG_PID}" 2>/dev/null || true' EXIT   # also when run with `bash` inside another job
 
 cd "${UPSTREAM}"
 export PYTHONPATH="${UPSTREAM}:${PYTHONPATH:-}"

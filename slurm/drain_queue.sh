@@ -14,6 +14,9 @@ LIMIT=50; HEADROOM="${HEADROOM:-3}"; PER_RUN=6
 # 1-GPU run peaks at ~13 GB RSS (+ <=10 GB Ray object store); 40G lets 8 runs fit the 350G per-user cap.
 RUN_OPTS=(--gres=gpu:1 --cpus-per-task=12 --mem=40G --time=16:00:00)
 
+# Keep the stall watchdog alive (it runs outside QoS ai; no-op when already queued or running).
+bash slurm/stall_watchdog.sh --submit >/dev/null 2>&1 || true
+
 while [[ -s "${Q}" ]]; do
   n=$(squeue -h -r -u "$(id -un)" | wc -l)
   (( n + PER_RUN <= LIMIT - HEADROOM )) || break
