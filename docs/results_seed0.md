@@ -122,7 +122,7 @@ A level's success rate under training rises in an S:
 
 * **τ=0.1 is a principled choice, not a lucky one.** Its target band [0.05, 0.2] contains the measured
   peak of the learning curve. It is the best of the three τ we ran, and the curve predicts that it should be.
-  τ between 0.1 and 0.3 was not run.
+  τ between 0.1 and 0.3 was not run. τ = 0.15 and 0.2 are on the January list to test the prediction.
 * **τ=0.5 targets the ceiling, not the half-solved midpoint.** At T = 1.0, levels plateau around 0.35–0.58,
   so p ≈ 0.5 is where a level stops improving. That is also why τ=0.5 never moved: op 11 levels off at
   ≈ 0.57, below its move-up bound of 0.6.

@@ -173,17 +173,21 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 ## 7. What is left for January
 
-1. **Seeds.** Confirm or retract §3 with 3 seeds per arm. Replace every [s0] tag with mean ± spread. Report the
+1. **Seeds.** Confirm or retract §3 with 3 seeds for τ=0.1, uniform and the op 11–17 control, and 2 for the other arms (seed policy, docs/budget.md). Replace every [s0] tag with mean ± spread. Report the
    pooled paired test for τ=0.1 vs uniform on op 18–20.
 2. **Bandit fixes.** Softmax selection, optimistic initialisation, and removing the self-reward loop (the real fix),
    3 seeds each, ≈ 25 GPU-h per fix (docs/bandit_analysis.md §7).
 3. **Longer runs.** 100 steps is half the paper's run. Extend the best arm and the fixed band to ~200 steps:
    does the fixed band catch up, or does the gap widen?
-4. **Range vs schedule** (queued, 3 seeds; results likely before Dec 3 if GPUs free up as expected). Uniform over op 11–17 is exactly the range
+4. **Range vs schedule** (running, 3 seeds; results expected before Dec 3). Uniform over op 11–17 is exactly the range
    τ=0.1 visited, sampled from step 0 without the schedule. If it matches τ=0.1 on op 18–20, the headline gain
    is the range, not the timing. This is the main objection a reviewer could raise.
-5. **τ=0.5 fix point.** Rerun with δ = 0.05 or patience 1 to separate "the target is wrong" from "the rule
-   cannot move".
-6. **Per-problem selection** (future work, noted in Gate 1). Within a level, problems are mostly always or
+5. **τ = 0.15 and τ = 0.2.** The learning curve peaks at p ≈ 0.10–0.21 (§3.4), and τ=0.1 only samples the
+   lower edge of that range. Running the two τ inside it turns "the one the curve predicts" into a tested claim.
+   Same rule (δ = 0.1, patience 2), so the move-up bounds are 0.25 and 0.30 (target bands [0.075, 0.25] and
+   [0.1, 0.3]). 2 seeds each ≈ 38 GPU-h, 3 seeds ≈ 57 GPU-h.
+6. **τ=0.5 fix point.** Mostly answered by §3.4: op 11's ceiling (≈ 0.57 at T = 1) is below the move-up bound
+   (0.6), so the target sits above what the level can reach. A rerun with δ = 0.05 is low priority.
+7. **Per-problem selection** (future work, noted in Gate 1). Within a level, problems are mostly always or
    never solved. Picking problems by their own measured p could raise the informative share well above ~40%.
-7. **Final report**: method, all arms with seeds, the op 18–20 analysis, the motivation correction, compute.
+8. **Final report**: method, all arms with seeds, the op 18–20 analysis, the motivation correction, compute.
