@@ -181,8 +181,20 @@ def main() -> None:
     a = ap.parse_args()
     runs = []
     for item in a.runs:
+        # A run dir without a merged checkpoint is still training: its log is partial (or empty right after
+        # launch) and must not enter the shared figure. Skipping it also keeps one fresh run from crashing
+        # every other run's analysis job.
+        if Path(item).is_dir() and not any((Path(item) / "hf").glob("step*")):
+            print(f"skip {Path(item).name}: still training (no hf/step*)")
+            continue
         label, log, track = resolve(item)
-        runs.append((label, load_sampler_log(log), load_tracking(track)))
+        loaded = load_sampler_log(log)
+        if not loaded["rows"]:
+            print(f"skip {label}: no steps logged")
+            continue
+        runs.append((label, loaded, load_tracking(track)))
+    if not runs:
+        raise SystemExit("no finished runs to plot")
     plot(runs, a.out)
     with a.out.with_suffix(".csv").open("w", newline="") as fh:
         w = csv.writer(fh)
