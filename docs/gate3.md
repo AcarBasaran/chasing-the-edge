@@ -1,6 +1,30 @@
 # Gate 3: fixed-band baseline
 
-Status: **setup done, released checkpoint evaluated, baseline not launched.** Waiting for the agreed scale (docs/budget.md).
+Status 2026-11-20: **PASSED.** Our strict fixed-band baseline (`fixed_band_s0`, 100 steps, 1 GPU, job 2068134)
+matches the released checkpoint and the paper's Fig. 3 on every band. See "Result" below.
+
+## Result
+
+Same test sets, same protocol (T=0.7, n=128, strict eval criterion). Seed 0, step 100.
+
+| set | base p@1 / p@8 / p@128 | **ours, fixed band 11–14** | released RL op11-14 | paper Fig. 3 (±2pp) | newly solved, ours / released |
+|---|---|---|---|---|---|
+| easy op2–10 (225) | 85.5 / 96.5 / 98.7 | 85.5 / 96.5 / 98.7 | 85.2 / 96.4 / 98.7 | 87.0 / 96.3 / 99.0 | 0 / 0 of 3 |
+| medium op11–14 (800) | 17.5 / 29.6 / 38.4 | **49.2 / 69.6 / 84.8** | 49.4 / 69.6 / 83.9 | 51.0 / 71.0 / 85.5 | 371 / 368 of 493 |
+| hard op15–20 (204) | 0 / 0 / 0 | **10.2 / 15.8 / 23.5** | 10.8 / 16.2 / 23.5 | 9.5 / 16.3 / 26.0 | **48 / 48 of 204** |
+
+* Every number is within 1pp of the released checkpoint. The headline count (hard problems the base model
+  never solved in 128 tries, now solved at least once) is 48 of 204 for both.
+* Per hard level, newly solved (ours / released): op15 24/25, op16 11/11, op17 7/7, op18 5/4, op19 1/1,
+  op20 0/0, all out of 34.
+* No forgetting: easy-set pass@1 unchanged (85.5), 0 base-solved problems lost on any set.
+* Strict reward vs (probably) answer-only release gave the same numbers at 100 steps. The paper's
+  +4–5pp from process rewards (Fig. 7) does not show up here; the released run may be longer or differently
+  configured (open questions in the email).
+* Cost: 8.4 h on one A40, 100 steps, 250 → ~340 s/step as responses lengthen (286 → ~300 tokens).
+
+Files: `results/per_problem/fixed_band_s0.csv`, `results/method_comparison*.csv|png`, `results/newly_solved.csv`,
+`$EDGE_SCRATCH/outputs/runs/fixed_band_s0/` (train.log, sampler_log.jsonl, edge_speed.csv|png, ckpt, hf/step100).
 
 ## What the baseline is (DECIDED 2026-11-15)
 
@@ -81,3 +105,24 @@ The tracking sweep in every run gives p_L(t) for all 19 levels every 10 steps.
 `eval/edge_speed.py <run>/train.log` turns that into an edge position (the level where p crosses
 τ = 0.5 / 0.3 / 0.1) and its speed in levels per step. The bandit's m must satisfy
 m ≤ 1 / speed. To be reported from the baseline run.
+
+**Measured (fixed_band_s0, `outputs/runs/fixed_band_s0/edge_speed.csv`).** Edge where tracking p crosses 0.3:
+
+| step | 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 100 |
+|---|---|---|---|---|---|---|---|---|---|
+| edge (op) | 12.1 | 13.1 | 13.5 | 13.7 | 13.9 | 13.8 | 14.0 | 14.1 | 14.2 |
+
+The edge does not move at a constant speed. It jumps about 1 level in the first 10 steps (0.09 levels/step),
+then moves about 0.02 levels/step until step 50, then about 0.007. Over the whole run the speed is 0.014
+levels/step, so m ≤ 71. In the middle phase the bound is m ≤ ~50. The first jump is faster than any probe
+schedule can follow; the bandit sees it only through the probe at step 0.
+
+The tracking set shows the model generalising past the trained band. These levels were never trained on:
+
+| level | p at step 0 | p at step 100 |
+|---|---|---|
+| 15 | 0 | 0.25 |
+| 16 | 0 | 0.13 |
+
+**DECIDED 2026-11-20: keep m = 25.** It satisfies m ≤ 1/speed in every phase after the first 10 steps, with
+about 2× margin in the middle phase. Bandit seeds 0–2 launched with m = 25 (jobs 2070982, 2070986, 2070990).

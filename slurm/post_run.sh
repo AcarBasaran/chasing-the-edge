@@ -23,9 +23,10 @@ an=$(sbatch --parsable --job-name="analyse-${RUN_ID}" --dependency="afterok:${ev
       \$EDGE_PY eval/export_base_per_problem.py --run-dir ${R}/eval --ckname step${STEP} --val-levels none \
           --out results/per_problem/${RUN_ID}.csv && \
       \$EDGE_PY eval/newly_solved.py && \$EDGE_PY eval/compare_methods.py && \
-      \$EDGE_PY eval/parse_verl_log.py ${R}/train.log --csv ${R}/timing.csv --sampler-log ${R}/sampler_log.jsonl && \
+      `# parse_verl_log exits 1 when the level never changes (a Gate-2 smoke check); for a full run that is a result (tau=0.5), not a failure` \$EDGE_PY eval/parse_verl_log.py ${R}/train.log --csv ${R}/timing.csv --sampler-log ${R}/sampler_log.jsonl || true; \
       \$EDGE_PY eval/edge_speed.py ${R}/train.log --csv ${R}/edge_speed.csv --plot ${R}/edge_speed.png && \
       \$EDGE_PY eval/plot_sampler_levels.py \$(ls -d ${EDGE_SCRATCH}/outputs/runs/*_s[0-9] | grep -v _hung_) \
-          --out results/sampler_levels.png")
+          --out results/sampler_levels.png; \
+      bash slurm/drain_queue.sh || true")
 echo "${RUN_ID}: train ${TRAIN_JOB} -> merge ${merge} -> eval ${ev} (array 19-21) -> analyse ${an}" \
   | tee -a "${EDGE_SCRATCH}/outputs/post_run_chains.txt"
