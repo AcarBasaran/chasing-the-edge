@@ -109,6 +109,29 @@ Full table:
 
 `results/sampler_levels.png` shows the level each arm chose, plotted over the measured success rate of every level.
 
+### Why τ=0.1, and why τ=0.5 never moved: the learning curve of a level
+
+`results/scurve.png` (`eval/scurve.py`; fixed band s0–s1, uniform s0–s1; details in docs/bandit_analysis.md §6).
+A level's success rate under training rises in an S:
+
+| | measured |
+|---|---|
+| where a level improves fastest | **p ≈ 0.10–0.21** (op 13: 0.19 / 0.21, op 14: 0.11 / 0.11, op 15: 0.10 / 0.12) |
+| where it levels off (training reward, T = 1.0, 100 steps) | **p ≈ 0.35–0.58** (op 11 0.57, op 12 0.54, op 13 0.45, op 14 0.35) |
+| improvement at p ≈ 0 | ≈ 0 (+0.0006 per 10 steps) |
+
+* **τ=0.1 is a principled choice, not a lucky one.** Its target band [0.05, 0.2] contains the measured
+  peak of the learning curve. It is the best of the three τ we ran, and the curve predicts that it should be.
+  τ between 0.1 and 0.3 was not run.
+* **τ=0.5 targets the ceiling, not the half-solved midpoint.** At T = 1.0, levels plateau around 0.35–0.58,
+  so p ≈ 0.5 is where a level stops improving. That is also why τ=0.5 never moved: op 11 levels off at
+  ≈ 0.57, below its move-up bound of 0.6.
+* **Correction to our own brief.** The project brief (CLAUDE.md) framed τ as "p = 0.5 maximises gradient
+  throughput vs low p maximises headroom". The first half is true as arithmetic: τ=0.5 had the highest
+  informative share of any arm (40%). But it assumed p = 0.5 is the middle of a level's learning curve. At
+  this temperature it is the top. Gradient throughput at the ceiling teaches nothing new: 0 hard problems
+  newly solved. The trade-off we set out to measure is really "plateau vs steep part", and the steep part wins.
+
 ## 4. The fixed band over time: the band does not stay dead, it stays put
 
 The step-0 snapshot (docs/gate1.md) shows op13–14 giving a gradient in under 3% of groups. That holds only for
