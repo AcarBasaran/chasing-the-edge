@@ -112,7 +112,16 @@ margin (+8.4 points, 17 problems [s0]), and it sits on the levels beyond τ=0.1'
 * **τ=0.3 found the paper's band on its own** and matches it (51 vs 48 newly solved [s0]). If seeds confirm
   this, it is a positive finding about the paper's hand-picked band: it is where a τ=0.3 rule settles.
 
-### 3.4 Costs
+### 3.4 The bandit: learning speed is the wrong target
+
+The bandit (reward = improvement in p between probes) is the weakest trained arm: hard newly solved
+40.7 ± 3.5 over 3 seeds, vs 48 for the fixed band. After its first value update (step 25) the greedy
+choice never went beyond op 14 in any seed. op 15+ was sampled only by ε-exploration, at exactly the
+ε floor of 3.2% of prompts. Two reasons. A level at p = 0 shows zero improvement. The level being trained
+improves *because* it is trained, so the argmax locks onto it. Details and the m = 10 ablation:
+docs/bandit_analysis.md.
+
+### 3.5 Costs
 
 * τ=0.1 is slightly less reliable on easier sets: medium pass@1 46.9 vs 49.2, easy pass@1 84.0 vs 85.5 [s0].
   Medium pass@128 is equal.
@@ -143,7 +152,7 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 ## 6. What is still running
 
-* Bandit, seeds 0–2.
+* Bandit ablation with probe interval m = 10 (one seed, 50 steps; docs/bandit_analysis.md §4).
 * Seeds 1 and 2 of fixed band, uniform, τ=0.1 and τ=0.3. τ=0.5 stays at one seed: it never leaves op 11,
   so more seeds would buy nothing (budget decision, 2026-11-20).
 * Control: uniform over op 11–17, seeds 0–2, queued behind the above.
@@ -157,8 +166,8 @@ a snapshot, next to the time series (`results/informative_over_training.png`, do
 
 1. **Seeds.** Confirm or retract §3 with 3 seeds per arm. Replace every [s0] tag with mean ± spread. Report the
    pooled paired test for τ=0.1 vs uniform on op 18–20.
-2. **Bandit.** Analyse where it goes and whether its probe interval (m = 25, set from the measured edge
-   speed) is fast enough. For the first 25 steps it is uniform by construction.
+2. **Bandit.** Done for m = 25 (§3.4). An m = 10 ablation (one seed, 50 steps) tests whether the probe interval
+   explains it. Optimistic initialisation of unvisited arms is a candidate fix, not run.
 3. **Longer runs.** 100 steps is half the paper's run. Extend the best arm and the fixed band to ~200 steps:
    does the fixed band catch up, or does the gap widen?
 4. **Range vs schedule** (queued, 3 seeds; results likely before Dec 3 if GPUs free up as expected). Uniform over op 11–17 is exactly the range

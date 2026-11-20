@@ -75,3 +75,6 @@ Projection to the end of the plan, counting what is still running or queued:
 Against the experimental plan, the control fits after the cut (174 ≤ 200). Against everything the
 allocation has actually burned, it does not (222 > 200), because of the 48 h hang. DECIDED 2026-11-20:
 τ=0.5 cut to one seed. The next cut, if needed, follows CLAUDE.md order (seeds of the other arms).
+
+Added 2026-11-20: bandit ablation m = 10, one seed, 50 steps, no eval: **≈ 4 GPU-h** → ≈ 226 total
+(≈ 178 without the hang). Bandit seeds 0–2 ran 7.5–8.5 h each, as projected.

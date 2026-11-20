@@ -182,3 +182,46 @@ def test_gradient_budget_pools_all_groups(tmp_path, monkeypatch):
     assert row["groups_per_run"] == "400"
     assert abs(float(row["informative_frac_mean"]) - (40 + 2 + 100) / 400) < 1e-9
     assert (row["informative_groups_op11-14_mean"], row["informative_groups_op18-20_mean"]) == ("140", "2")
+
+
+def test_bandit_zero_arm_never_greedy_and_phases(tmp_path):
+    """An arm stuck at p = 0 earns r = 0, so it loses argmax to any improving arm; bandit_q counts op15+ prompts
+    per phase and attributes none of them to the greedy choice."""
+    from bandit_q import load, phases, probes
+
+    b = Bandit(levels=[13, 15], epsilon=0.0, seed=0)
+    for p13, p15 in [(0.0, 0.0), (0.3, 0.0), (0.4, 0.0)]:
+        b.update(13, p13, probe=True)
+        b.update(15, p15, probe=True)
+    assert b.Q[15] == 0.0 and b.Q[13] > 0 and b.greedy_level() == 13
+
+    d = tmp_path / "bandit_s0"
+    d.mkdir()
+    rows = [{"event": "init", "kwargs": {"epsilon": 0.1}, "levels": [13, 15], "probe_every": 2, "total_steps": 4}]
+    for step, probe, chosen, greedy in [(0, True, {"13": 5, "15": 5}, 13), (1, False, {"13": 5, "15": 5}, 13),
+                                        (2, True, {"13": 5, "15": 5}, 13), (3, False, {"13": 9, "15": 1}, 13)]:
+        rows.append({"event": "step", "step": step, "probe": probe, "chosen": chosen,
+                     "p": {"13": 0.3, "15": 0.0}, "n": {"13": 30, "15": 30}, "informative_frac": {"13": 0.5},
+                     "state": {"Q": {"13": 0.1 * step, "15": 0.0}, "greedy": str(greedy)}})
+    (d / "sampler_log.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    run = load(d)
+    assert [p["step"] for p in probes(run)] == [0, 2]
+    ph = {x["phase"].split(":")[0]: x for x in phases(run)}
+    assert ph["steps 1-1"]["share_op15plus"] == 0.5
+    assert ph["steps 3+"]["share_op15plus"] == 0.1 and ph["steps 3+"]["steps_greedy_op15plus"] == 0
+    assert abs(ph["steps 3+"]["epsilon_only_share"] - 0.05) < 1e-12
+
+
+def test_plot_sampler_levels_skips_runs_still_training(tmp_path, capsys, monkeypatch):
+    import sys
+    import plot_sampler_levels as psl
+
+    d = tmp_path / "threshold_tau1_s9"
+    d.mkdir()
+    (d / "sampler_log.jsonl").write_text("")
+    monkeypatch.setattr(sys, "argv", ["plot_sampler_levels.py", str(d), "--out", str(tmp_path / "x.png")])
+    try:
+        psl.main()
+    except SystemExit as e:
+        assert "no finished runs" in str(e)
+    assert "still training" in capsys.readouterr().out
