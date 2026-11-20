@@ -125,8 +125,10 @@ bandit locked onto op 12 even earlier, and op 15+ again got only the ε floor.
 
 Where a level improves fastest: a level's success rate rises in an S, steepest at p ≈ 0.1–0.2 and flat at
 a plateau of about 0.35–0.58 (training reward, T = 1.0) [fixed band s0–s1, uniform s0–s1]. τ=0.5's band is the
-plateau. τ=0.1's band is the steep part. The bandit aims at the steep part, but it measures improvement after
-the fact, so it trains the level that just finished rising. Details: docs/bandit_analysis.md §4 and §6.
+plateau. τ=0.1's band is the steep part. So τ=0.1 is a principled choice, not a lucky pick: its target band
+contains the measured peak. p ≈ 0.5 is the ceiling at this temperature, not the half-solved midpoint, which
+corrects the premise in our proposal that p = 0.5 is the sweet spot. The bandit is held behind the steep part
+mainly by self-reward. Measurement lag is secondary: m = 10 made it lock on sooner, not later. Details: docs/bandit_analysis.md §4 and §6.
 Fixes (softmax selection, optimistic initialisation, removing the self-reward loop) are January work (§7).
 
 ### 3.5 Costs

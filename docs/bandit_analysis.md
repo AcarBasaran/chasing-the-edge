@@ -112,22 +112,39 @@ with a 5-step mean and the rate measured over ±5 steps.
 
 What this means:
 
-* **Under the training reward at T = 1.0, levels plateau at p ≈ 0.35–0.58, not 1.** The τ=0.5 band
-  [0.4, 0.6] is the *top* of these curves, where improvement is ≈ 0 (right panel). τ=0.5 maximises
-  informative groups by sitting on a plateau.
-* **The steepest point is at p ≈ 0.1–0.2, inside τ=0.1's band [0.05, 0.2]**, at 30–50% of the level's plateau.
-  Read instantaneously, "fastest improvement" points at the same levels as headroom.
+* **τ=0.1's target is where learning is fastest, which makes it a principled choice, not a lucky one.** The
+  steepest rise is at p ≈ 0.10–0.21 for every level that starts at p ≈ 0, at 30–50% of the level's plateau.
+  That is τ=0.1's target band [0.05, 0.2]. Of the three τ we ran, τ=0.1 is the one whose band contains the
+  measured peak, and it is the one that won. (τ between 0.1 and 0.3 was not run, so "best of the three
+  tested, and predicted by the curve", not "the optimum".)
+* **Levels plateau at p ≈ 0.35–0.58 under the training reward at T = 1.0, not at 1.** The τ=0.5 band
+  [0.4, 0.6] is the *ceiling* of these curves, not the half-solved midpoint, and improvement there is ≈ 0.
+  τ=0.5 maximises informative groups by sitting on a plateau. It also explains why τ=0.5 never moved: op 11
+  levels off at p ≈ 0.57, below the move-up bound τ + δ = 0.6, so the rule's trigger sits above the level's
+  ceiling (observed p at op 11: 0.55–0.63, never above 0.6 for 2 steps in a row).
 * **The flat bottom holds.** Levels at p ≈ 0 improve at ≈ 0 (fixed band, tracking set: +0.0006 per 10 steps
   over 85 level-intervals at p < 0.02). The improvement signal is weakest exactly where new ability starts.
-* **So the bandit's objective was not the problem. Its measurement was.** A level's rise is fast: op 13
-  went 0.02 → 0.37 in about 15 steps. Δp over a probe interval is measured *after* the rise, when the level is
-  already near its plateau. The level that rose during the last interval is then trained (self-reward), and
-  levels at the flat bottom show nothing. The bandit ends up behind the edge. τ=0.1 reads the *level* of p
-  and moves as soon as p > 0.2, which lands it on the steep part directly.
 
-The three objectives therefore are not two-against-one in disguise. They map onto three parts of the same S-curve:
-**gradient efficiency (τ=0.5) targets the plateau, headroom (τ=0.1) targets the steep part, and learning speed
-(bandit) aims at the steep part but, measured as Δp after the fact, lands on the level that just finished rising.**
+### Why the bandit misses the steep part: self-reward first, lag second
+
+Two mechanisms could explain it, and the m = 10 ablation separates them.
+
+1. **Self-reward (primary).** The arm being trained improves because it is trained, so its own training
+   generates its reward and keeps it greedy (§2). op 15 reached second place in Q and got nothing.
+2. **Lag (secondary).** A level's rise is fast (op 13: 0.02 → 0.37 in about 15 steps). Δp over a probe
+   interval is measured after much of the rise is over.
+
+**If lag were the main cause, m = 10 should have helped.** It did not (§4). With 2.5× faster probes the bandit
+locked on *sooner* (step 10) and onto an *easier* level (op 12). op 15+ again got only the ε floor, and the
+greedy choice never went beyond op 14. Faster measurement just let self-reward act earlier, on whichever level
+had risen first. So self-reward is the primary mechanism. Lag makes it worse but does not explain it on its own.
+
+τ=0.1 avoids both. It reads the *level* of p, not its change, and it moves on as soon as p > 0.2, before the
+level it trained on has had time to reward itself.
+
+The three objectives map onto three parts of the same S-curve: **gradient efficiency (τ=0.5) sits on the
+plateau, headroom (τ=0.1) sits on the steep part, and learning speed (bandit) is held behind the edge by its
+own self-reward, made worse by lag.**
 
 ## 7. Fixes (future work, January; not run)
 

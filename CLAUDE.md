@@ -177,6 +177,10 @@ Two forces pull against each other:
 - Low p maximises headroom (levels the model already half-solves have
   little left to teach).
 Whichever tau wins is a reportable finding. Treat it as such.
+MEASURED 2026-11-20 (correcting the premise above; docs/results_seed0.md, docs/bandit_analysis.md §6):
+under the training reward at T=1.0 a level's p plateaus at ~0.35-0.58, NOT 1. So p=0.5 is the CEILING
+of a level's learning curve, not its midpoint: tau=0.5 maximises informative groups (40%, highest of all
+arms) while learning nothing new. Improvement is fastest at p~0.10-0.21 = tau=0.1's band, and tau=0.1 won.
 
 ## Probe rollouts and the budget trap
 
