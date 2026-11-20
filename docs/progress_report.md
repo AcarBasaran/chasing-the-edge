@@ -2,6 +2,9 @@
 
 COMP550 · Eren Acar Basaran, Turan Berke Yakarer
 
+> **Update 20:45: τ=0.1 now has 3 seeds and the seed-0 result holds; aggregated numbers and the pooled paired
+> tests are in docs/results_seeds.md, which supersedes [s0] numbers below where they differ.**
+>
 > **Marking.** Numbers tagged **[s0]** come from **one training seed (seed 0)** per arm and have no
 > seed-to-seed error bars yet. Seeds 1 and 2 are running. Untagged numbers are either reproductions of the paper
 > (deterministic setup checks) or properties of the base model. Paired significance tests are reported
@@ -78,7 +81,8 @@ solved. τ=0.1 spent its budget on op 15–17 while those were at the edge (25% 
 [s0]), and that skill carried two to three levels beyond anything it trained on.
 
 Within seed 0 only, paired by problem: τ=0.1 newly solves 9 problems uniform does not, and uniform 1 that
-τ=0.1 does not. Seed-to-seed variance is not included; the pooled test across seeds will replace this.
+τ=0.1 does not. **Across 3 seeds each (pooled by problem):** τ=0.1 better on 15 problems, uniform on 2, sign
+test p = 0.0023; +7.7 newly solved per seed [95% CI +3.7, +12.3] (docs/results_seeds.md §2).
 
 **Not more gradient, gradient in a different place.** Pooled over the run, τ=0.1 had a *lower* share of
 groups with nonzero gradient (25.0% [s0]) than the fixed band (35.4%), τ=0.3 (33.9%) and τ=0.5 (40.1%); only

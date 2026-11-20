@@ -18,7 +18,7 @@ The bandit is the weakest trained arm, below the fixed band, consistently across
 
 | arm | seeds | hard pass@128 | hard newly solved (of 204) | op 18–20 newly solved | informative groups at op 15–17 |
 |---|---|---|---|---|---|
-| threshold τ=0.1 | 1 | 46.1 | 94 | 27 | 20,739 |
+| threshold τ=0.1 | 3 | 46.6 ± 0.8 | 95.0 ± 1.7 | 27.7 ± 0.6 | 20,642 |
 | fixed band | 2 | 23.5 ± 0.0 | 48.0 ± 0.0 | 6.0 ± 0.0 | 0 |
 | **bandit** | 3 | **19.9 ± 1.7** | **40.7 ± 3.5** | 3.3 ± 1.5 | 161 |
 
