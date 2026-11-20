@@ -27,6 +27,7 @@ an=$(sbatch --parsable --job-name="analyse-${RUN_ID}" --dependency="afterok:${ev
       \$EDGE_PY eval/edge_speed.py ${R}/train.log --csv ${R}/edge_speed.csv --plot ${R}/edge_speed.png && \
       \$EDGE_PY eval/plot_sampler_levels.py \$(ls -d ${EDGE_SCRATCH}/outputs/runs/*_s[0-9] | grep -v _hung_) \
           --out results/sampler_levels.png; \
+      \$EDGE_PY eval/untrained_levels.py && \$EDGE_PY eval/aggregate_seeds.py; \
       bash slurm/drain_queue.sh || true")
 echo "${RUN_ID}: train ${TRAIN_JOB} -> merge ${merge} -> eval ${ev} (array 19-21) -> analyse ${an}" \
   | tee -a "${EDGE_SCRATCH}/outputs/post_run_chains.txt"
