@@ -115,3 +115,43 @@ def test_bandit_arm_uses_alpha_0_3():
     sampler = EdgeCurriculumSampler(FakePool(10, 0.5, np.random.default_rng(0)),
                                     make_data_config(mc, "bandit", s["method_kwargs"], s["probe_every"]))
     assert sampler.core.alpha == 0.3 and sampler.core.epsilon == 0.1 and sampler.probe_every == 25
+
+
+def test_aggregate_seeds_spread_and_pooled_test(tmp_path, monkeypatch):
+    import sys as _sys
+
+    import aggregate_seeds
+
+    # 4 hard problems at op18 (base never solves any); two arms x two seeds.
+    base = [("test_hard", u, 18, 0) for u in "wxyz"]
+    runs = {  # problems newly solved per seed
+        "threshold_tau1_s0": "wxy", "threshold_tau1_s1": "wx",
+        "uniform_s0": "w", "uniform_s1": "z",
+    }
+    pp = tmp_path / "per_problem"
+    pp.mkdir()
+    _write(tmp_path / "base.csv", base)
+    for rid, solved in runs.items():
+        _write(pp / f"{rid}.csv", [("test_hard", u, 18, 3 if u in solved else 0) for u in "wxyz"])
+    monkeypatch.setattr(aggregate_seeds, "discover",
+                        lambda d=None, include_released=True: [("base", tmp_path / "base.csv")]
+                        + [(p.stem, p) for p in sorted(pp.glob("*.csv"))])
+    monkeypatch.setattr(_sys, "argv", ["aggregate_seeds.py", "--base", str(tmp_path / "base.csv"),
+                                       "--out-dir", str(tmp_path), "--runs-root", str(tmp_path / "none")])
+    aggregate_seeds.main()
+
+    rows = list(csv.DictReader(open(tmp_path / "seeds_by_set.csv")))
+    tau1 = next(r for r in rows if r["method"] == "threshold_tau1" and r["metric"] == "newly_solved")
+    assert tau1["n_seeds"] == "2" and float(tau1["mean"]) == 2.5 and float(tau1["min"]) == 2.0
+    assert tau1["per_seed"] == "s0:3 s1:2"
+
+    tests = [r for r in csv.DictReader(open(tmp_path / "seeds_paired_tests.csv")) if r["scope"] == "hard op18-20"]
+    # METHODS order puts uniform before threshold_tau1, so A = uniform, B = tau1.
+    assert {(r["arm_a"], r["arm_b"]) for r in tests} == {("uniform", "threshold_tau1")}
+    within = {r["seed"]: r for r in tests if r["kind"] == "within_seed"}
+    assert (within["0"]["only_a"], within["0"]["only_b"]) == ("0", "2")    # uniform {w} vs tau1 {w,x,y}
+    assert (within["1"]["only_a"], within["1"]["only_b"]) == ("1", "2")    # {z} vs {w,x}
+    pooled = next(r for r in tests if r["kind"] == "pooled")
+    # per-problem share of seeds: uniform w .5, x 0, y 0, z .5; tau1 w 1, x 1, y .5, z 0
+    assert (pooled["a_better_problems"], pooled["b_better_problems"]) == ("1", "3")
+    assert float(pooled["diff_mean_newly"]) == -1.5      # 1.0 - 2.5 newly solved per seed

@@ -175,7 +175,8 @@ the Gate-2 Threshold smoke run, where the model is still effectively the base mo
 
 **Two findings:**
 
-1. **Half of the paper's band is dead weight at step 0, as predicted.** op13 gives a gradient in 2.4% of
+1. **At step 0, half of the paper's band is dead weight, as predicted.** (This is a snapshot: by step 20 the
+   band is fully informative; see the time series below.) op13 gives a gradient in 2.4% of
    groups and op14 in 0.05%. Averaged over the band, 20% of the fixed-band groups carry any signal (per-problem, T=1.0).
 2. **The level-mean formula overstates the informative share by ~2.3× even at the best levels.** At op11 it
    predicts 97%, but only ~42% of groups are informative; the real GRPO run measured 46.5%. Problems within
