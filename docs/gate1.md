@@ -184,6 +184,28 @@ the Gate-2 Threshold smoke run, where the model is still effectively the base mo
    For the samplers this means the level-mean p is a weak proxy for gradient yield. Logging the measured
    informative fraction per step, which `EdgeCurriculumSampler` already does, is the better signal to plot.
 
+**The step-0 table is a snapshot. The band does not stay dead (added 2026-11-20).** In the fixed-band
+baseline (`fixed_band_s0`), training on op11–12 generalises upward. op13 and op14 become informative within
+about 20 steps, without any change to the sampler. Measured directly on the groups GRPO trained (G=6, about
+256 groups per level per step, 5-step window; `sampler_log.jsonl`):
+
+| level | step 0 | step 20 | step 40 | step 60 | step 80 | step 100 |
+|---|---|---|---|---|---|---|
+| op11 | 43% (p=0.53) | 41% (p=0.55) | 45% (p=0.57) | 40% (p=0.58) | 41% (p=0.57) | 41% (p=0.59) |
+| op12 | 38% (p=0.31) | 38% (p=0.52) | 37% (p=0.52) | 35% (p=0.52) | 33% (p=0.53) | 38% (p=0.54) |
+| op13 | 6% (p=0.02) | 37% (p=0.38) | 38% (p=0.44) | 36% (p=0.45) | 33% (p=0.44) | 36% (p=0.46) |
+| op14 | 0% (p=0.00) | 29% (p=0.23) | 34% (p=0.33) | 31% (p=0.34) | 29% (p=0.34) | 31% (p=0.34) |
+
+The step-0 column averages steps 0–2 (op13 at step 0 alone is 0.8%, then 5% and 13%). The band-average informative share goes
+from about 22% to about 36% by step 20 and stays there. So "half the band is dead" holds only for the first
+~15 steps of a 100-step run. The fixed band's real limitation is the other end: it never moves past op14
+while op15–16 become learnable (tracking p at step 100: op15 0.25, op16 0.13).
+
+Figure, all levels 9–17 including untrained ones: `results/informative_over_training.png`. It re-evaluates
+the saved checkpoints (steps 0/25/50/75/100; there are none at 20/40/60/80) with exactly the method of the
+table above: val, 200/level, n=64, T=1.0, per-problem estimate
+(`slurm/informative_over_training.sh`, `eval/informative_over_training.py`).
+
 T=0.7 vs T=1.0: the level means barely move (op11 0.489 vs 0.483, op12 0.238 vs 0.252). So the Threshold
 start behaviour holds at the RL temperature: τ=0.3 leaves op11 upward, and τ=0.5 holds there.
 

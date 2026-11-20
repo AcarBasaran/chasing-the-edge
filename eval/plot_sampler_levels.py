@@ -23,6 +23,7 @@ import argparse
 import csv
 import json
 import sys
+import textwrap
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -101,7 +102,7 @@ def plot(runs, out: Path):
 
     INK, INK2, SURF, GRID = "#0b0b0b", "#52514e", "#fcfcfb", "#e6e5e0"
     seq = LinearSegmentedColormap.from_list("p", ["#0d3a73", "#2a78d6", "#9cc3f0", "#f2f6fc"])  # dark = unsolved
-    fig, axes = plt.subplots(2, len(runs), figsize=(4.6 * len(runs), 5.2), dpi=150, facecolor=SURF,
+    fig, axes = plt.subplots(2, len(runs), figsize=(4.6 * len(runs), 5.6), dpi=150, facecolor=SURF,
                              sharex="col", gridspec_kw={"height_ratios": [2.2, 1]}, squeeze=False)
     mesh = None
     for j, (label, log, track) in enumerate(runs):
@@ -143,7 +144,8 @@ def plot(runs, out: Path):
         top.set_yticks([2, 5, 8, 11, 14, 17, 20])
         top.grid(axis="y", color=GRID, lw=0.5)
         kw = ", ".join(f"{k}={v}" for k, v in log["kwargs"].items() if k != "seed")
-        top.set_title(f"{label}\n{log['method']}" + (f" ({kw})" if kw else ""), fontsize=8, color=INK, loc="left")
+        head = f"{log['method']} ({kw})" if kw else log["method"]
+        top.set_title(f"{label}\n" + textwrap.fill(head, 46), fontsize=7.5, color=INK, loc="left")
         if j == 0:
             top.set_ylabel("difficulty level (op)", fontsize=8, color=INK)
             bot.set_ylabel("rate in training batch", fontsize=8, color=INK)
