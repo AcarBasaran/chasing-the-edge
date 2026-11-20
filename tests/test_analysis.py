@@ -155,3 +155,30 @@ def test_aggregate_seeds_spread_and_pooled_test(tmp_path, monkeypatch):
     # per-problem share of seeds: uniform w .5, x 0, y 0, z .5; tau1 w 1, x 1, y .5, z 0
     assert (pooled["a_better_problems"], pooled["b_better_problems"]) == ("1", "3")
     assert float(pooled["diff_mean_newly"]) == -1.5      # 1.0 - 2.5 newly solved per seed
+
+
+def test_gradient_budget_pools_all_groups(tmp_path, monkeypatch):
+    import sys as _sys
+
+    import aggregate_seeds
+
+    base = [("test_hard", "w", 18, 0)]
+    pp, runs_root = tmp_path / "pp", tmp_path / "runs"
+    pp.mkdir()
+    _write(tmp_path / "base.csv", base)
+    _write(pp / "uniform_s0.csv", [("test_hard", "w", 18, 1)])
+    (runs_root / "uniform_s0").mkdir(parents=True)
+    steps = [  # two steps: 100 groups at op12 (40% informative), 100 at op19 (2%), then 200 at op12 (50%)
+        {"event": "step", "step": 0, "chosen": {"12": 100, "19": 100}, "informative_frac": {"12": 0.4, "19": 0.02}},
+        {"event": "step", "step": 1, "chosen": {"12": 200}, "informative_frac": {"12": 0.5}},
+    ]
+    (runs_root / "uniform_s0" / "sampler_log.jsonl").write_text("\n".join(json.dumps(s) for s in steps) + "\n")
+    monkeypatch.setattr(aggregate_seeds, "discover", lambda d=None, include_released=True:
+                        [("base", tmp_path / "base.csv"), ("uniform_s0", pp / "uniform_s0.csv")])
+    monkeypatch.setattr(_sys, "argv", ["aggregate_seeds.py", "--base", str(tmp_path / "base.csv"),
+                                       "--out-dir", str(tmp_path), "--runs-root", str(runs_root)])
+    aggregate_seeds.main()
+    row = next(csv.DictReader(open(tmp_path / "seeds_gradient_budget.csv")))
+    assert row["groups_per_run"] == "400"
+    assert abs(float(row["informative_frac_mean"]) - (40 + 2 + 100) / 400) < 1e-9
+    assert (row["informative_groups_op11-14_mean"], row["informative_groups_op18-20_mean"]) == ("140", "2")

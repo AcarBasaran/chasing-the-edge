@@ -10,6 +10,10 @@ Tables (strict eval criterion; pass@k unbiased, mean over problems; newly solved
   results/seeds_hard_levels.csv arm x hard level (15..20, pooled 15-17 / 18-20): pass@1, pass@128, newly_solved
                                 (mean, sd, min, max over seeds) + training exposure at those levels
                                 (groups and groups with nonzero gradient, from sampler_log.jsonl, mean over seeds)
+  results/seeds_gradient_budget.csv  per arm: share of ALL its GRPO groups over the run (probes included, so
+                                every arm has the same 102,400) that had nonzero reward variance, i.e. nonzero
+                                gradient; and informative groups by level band (op2-10, 11-14, 15-17, 18-20).
+                                Mean, sd, min, max over seeds.
   results/seeds_paired_tests.csv every pair of arms, on hard op18-20 and on the whole hard set:
       within_seed   for each seed index both arms have: problems newly solved only by A / only by B, exact
                     McNemar p. THESE ARE WITHIN ONE SEED: they do not include seed-to-seed variance.
@@ -40,6 +44,7 @@ from passk import pass_at_k  # noqa: E402
 from runs_io import REPO, TEST_SETS, discover, load_per_problem, method_sort_key, parse_run_id  # noqa: E402
 from untrained_levels import exposure  # noqa: E402
 
+BANDS = {"op2-10": range(2, 11), "op11-14": range(11, 15), "op15-17": range(15, 18), "op18-20": range(18, 21)}
 HARD_KEYS = [(str(L), (L,)) for L in range(15, 21)] + [("15-17", (15, 16, 17)), ("18-20", (18, 19, 20))]
 SCOPES = {"hard op18-20": ("test_hard", (18, 19, 20)), "hard op15-20": ("test_hard", tuple(range(15, 21)))}
 
@@ -157,6 +162,21 @@ def main() -> None:
                                                            for r in runs[arm].values()))
             level_rows.append(row)
 
+    budget_rows = []
+    for arm in arms:
+        seeds_ = [r for r in runs[arm].values() if sum(r["groups"].values())]
+        if not seeds_:
+            continue                                   # no sampler log (e.g. the released checkpoint)
+        row = {"method": arm, "n_seeds": len(seeds_),
+               "groups_per_run": round(st.mean(sum(r["groups"].values()) for r in seeds_))}
+        frac = [sum(r["informative"].values()) / sum(r["groups"].values()) for r in seeds_]
+        row.update({f"informative_frac_{k}": v for k, v in spread(frac).items() if k != "n_seeds"})
+        for band, levels in BANDS.items():
+            vals = [sum(r["informative"][L] for L in levels) for r in seeds_]
+            row[f"informative_groups_{band}_mean"] = round(st.mean(vals))
+            row[f"groups_{band}_mean"] = round(st.mean(sum(r["groups"][L] for L in levels) for r in seeds_))
+        budget_rows.append(row)
+
     rng = np.random.default_rng(20261120)
     test_rows = []
     for scope, (split, ops) in SCOPES.items():
@@ -169,7 +189,7 @@ def main() -> None:
                     test_rows.append({"scope": scope, "arm_a": x, "arm_b": y, "n_problems": len(uids), **r})
 
     for name, rows in (("seeds_by_set.csv", set_rows), ("seeds_hard_levels.csv", level_rows),
-                       ("seeds_paired_tests.csv", test_rows)):
+                       ("seeds_gradient_budget.csv", budget_rows), ("seeds_paired_tests.csv", test_rows)):
         if not rows:
             continue
         with (a.out_dir / name).open("w", newline="") as fh:
@@ -191,6 +211,14 @@ def main() -> None:
         lv = next((r for r in level_rows if r["method"] == m and r["level"] == "18-20"), None)
         print(f"| {m} | {seeds[m]} | {fmt(get['test_hard', 'pass@1'])} | {fmt(get['test_hard', 'pass@128'])} | "
               f"{fmt(get['test_hard', 'newly_solved'])} | {fmt(lv, 'newly_solved_') if lv else '–'} |")
+    print("\nGradient budget: share of all GRPO groups with nonzero gradient, pooled over training; "
+          "informative groups by level band (mean over seeds)")
+    print("| arm | seeds | informative share | op2-10 | op11-14 | op15-17 | op18-20 |")
+    print("|---|---|---|---|---|---|---|")
+    for r in budget_rows:
+        sd = f" ± {100 * r['informative_frac_sd']:.1f}" if r["informative_frac_sd"] != "" else ""
+        print(f"| {r['method']} | {r['n_seeds']} | {100 * r['informative_frac_mean']:.1f}%{sd} | "
+              + " | ".join(f"{r[f'informative_groups_{b}_mean']:,}" for b in BANDS) + " |")
     print("\nPaired tests, hard op18-20 (within_seed = one seed only; pooled = problem-level across seeds):")
     for r in test_rows:
         if r["scope"] == "hard op18-20" and {"threshold_tau1", "uniform", "fixed_band"} >= {r["arm_a"], r["arm_b"]}:

@@ -46,6 +46,26 @@ groups informative). That skill carried two to three levels further than the tra
   not include seed-to-seed variance. Do not quote them until seeds aggregate (`results/seeds_paired_tests.csv`,
   pooled rows).
 
+### Did τ=0.1 just spend more of its compute on informative groups? No.
+
+Share of **all** GRPO groups with nonzero gradient, pooled over the whole run (102,400 groups per arm, seed 0;
+`results/seeds_gradient_budget.csv`), and where those informative groups were:
+
+| arm | informative share, all groups | informative groups op11–14 | **op15–17** | **op18–20** | op18–20 newly solved |
+|---|---|---|---|---|---|
+| threshold τ=0.5 | **40.1%** | 41,071 | 0 | 0 | 0 |
+| fixed band | 35.4% | 36,257 | 0 | 0 | 6 |
+| threshold τ=0.3 | 33.9% | 34,752 | 0 | 0 | 5 |
+| threshold τ=0.1 | 25.0% | 4,868 | **20,739** | 0 | **27** |
+| uniform random | 18.8% | 7,503 | 2,296 | 487 | 19 |
+
+(uniform also had 8,984 informative groups at op2–10.)
+
+τ=0.1 had a *lower* informative share than the fixed band, τ=0.3 and τ=0.5. The total amount of gradient
+signal does not explain the result. **Where the signal is** does. The op18–20 ranking follows the number of
+informative groups beyond op14: τ=0.1 20,739, uniform 2,783, every other arm 0. Among the arms with none,
+the ranking follows how high they trained (fixed band and τ=0.3 at op11–14: 5–6; τ=0.5 at op11 only: 0).
+
 ## 2. How much of the gain is "harder problems at all", and how much is adaptive timing
 
 | arm | levels trained on | hard pass@128 | gain over fixed band | hard newly solved (of 204) |
