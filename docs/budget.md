@@ -98,3 +98,20 @@ Cut options if 200 is firm, in order of least scientific cost (only what has not
 fixed band s2 (−6.2; seeds 0 and 1 are identical at 48/48 newly solved), τ=0.3 s2 (−6.5; not central),
 bandit m10 (−3.4), control s2 (−9.3; leaves the range-vs-schedule control at 2 seeds). All four ≈ −25,
 which gives ≈ 200. τ=0.1 s1/s2 and uniform s2 are not on the list.
+
+## Cuts and seed policy (DECIDED 2026-11-20, user)
+
+* Cut at 17:11: fixed band seed 2 and τ=0.3 seed 2. Both were at step 73 of 100, so the cut saved only their
+  last ~27 steps plus evals (≈ 6 GPU-h together), not the ≈ 12.5 estimated at 13:20.
+* Kept: τ=0.1 seeds 1–2, uniform seed 2, control (uniform op 11–17) seeds 0–2, bandit m = 10 ablation (done, 3.7 GPU-h).
+* **Seed policy from here: 3 seeds only for τ=0.1, uniform and the op 11–17 control**, the arms the main claim
+  rests on. 2 seeds for every other arm (fixed band 48 / 48, τ=0.3 51 / 46 newly solved). τ=0.5 stays at 1.
+  No third seed for any other arm without asking.
+* 200 GPU-h was the planning number, not a cap. January gets its own budget.
+
+| (17:33) | GPU-h |
+|---|---|
+| spent (sacct, incl. running jobs' elapsed time) | 197.4 |
+| left in the 6 running runs (τ=0.1 s1 ~1.5, s2 ~2.8, uniform s2 ~0.9, control s0 ~2.2, s1 ~2.8, s2 ~8.3) | ≈ 18.5 |
+| test-set evals for those 6 runs | ≈ 3 |
+| **projected total for Dec 3** | **≈ 219** (≈ 171 without the 48 h hang) |

@@ -69,12 +69,24 @@ cd "${UPSTREAM}"     # upstream configs use cwd-relative paths (searchpath, verl
 "${EDGE_PY}" -m verl.trainer.main_ppo "${ARGS[@]}" --cfg job --resolve > "${RUN_DIR}/resolved_config.yaml"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
 START=$(date +%s)
-# Startup watchdog: if step 1 has not been logged after STARTUP_TIMEOUT_MIN (default 60; step 1 incl. model
-# load, vLLM init and the step-0 tracking sweep takes ~15 min on 1 GPU), kill the trainer so the job fails
-# in an hour instead of idling to the time limit.
-( sleep $(( ${STARTUP_TIMEOUT_MIN:-60} * 60 ))
-  grep -q "step:1 - " "${RUN_DIR}/train.log" 2>/dev/null && exit 0
-  echo "[rl_run] WATCHDOG: no 'step:1' after ${STARTUP_TIMEOUT_MIN:-60} min -- killing the trainer" | tee -a "${RUN_DIR}/train.log"
-  pkill -TERM -u "$(id -u)" -f "verl.trainer.main_ppo .*trainer.experiment_name=${RUN_ID} " ) &
+# Stall watchdog (user rule 2026-11-20, after the 48 GPU-h Ray hang): if the step counter in train.log has not
+# advanced for STALL_MIN minutes (default 30; counted from job start until step 1 appears), kill the trainer,
+# cancel the job and say why in train.log and $EDGE_SCRATCH/outputs/watchdog.log. Healthy: step 1 at ~15 min
+# (model load, vLLM init, step-0 tracking sweep), longest step 415 s over 19 runs. slurm/stall_watchdog.sh
+# runs the same check from outside as a second line of defence.
+STALL_MIN="${STALL_MIN:-30}"
+( last=""; since=$(date +%s)
+  while sleep 60; do
+    cur=$(grep -aoE 'step:[0-9]+ - ' "${RUN_DIR}/train.log" 2>/dev/null | tail -1)
+    if [[ "${cur}" != "${last}" ]]; then last="${cur}"; since=$(date +%s); continue; fi
+    (( $(date +%s) - since > STALL_MIN * 60 )) || continue
+    why="${last:-no step yet} unchanged for ${STALL_MIN} min"
+    echo "[rl_run] WATCHDOG: ${why} -- killing the trainer and cancelling job ${SLURM_JOB_ID}" | tee -a "${RUN_DIR}/train.log"
+    echo "$(date -Is) CANCEL(in-job) ${SLURM_JOB_ID} rl ${RUN_ID}: step counter ${why}" >> "${EDGE_SCRATCH}/outputs/watchdog.log"
+    pkill -TERM -u "$(id -u)" -f "verl.trainer.main_ppo .*trainer.experiment_name=${RUN_ID} "
+    sleep 60; scancel "${SLURM_JOB_ID}"; exit 0
+  done ) &
+WATCHDOG_PID=$!
 "${EDGE_PY}" -u -m verl.trainer.main_ppo "${ARGS[@]}" 2>&1 | tee -a "${RUN_DIR}/train.log"
+kill "${WATCHDOG_PID}" 2>/dev/null || true
 echo "[rl_run] ${RUN_ID} exit 0 after $(( $(date +%s) - START )) s, ${NGPU} GPUs" | tee -a "${RUN_DIR}/git.txt"
