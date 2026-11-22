@@ -1,205 +1,261 @@
-# Chasing the Edge: progress report (draft, 2026-11-20)
+# Chasing the Edge: Adaptive Difficulty for GRPO
 
-COMP550 · Eren Acar Basaran, Turan Berke Yakarer
+**COMP550 progress report** · Eren Acar Basaran, Turan Berke Yakarer · draft of 2026-11-22, due Dec 6
 
-> **Update 20:45: τ=0.1 now has 3 seeds and the seed-0 result holds; aggregated numbers and the pooled paired
-> tests are in docs/results_seeds.md, which supersedes [s0] numbers below where they differ.**
->
-> **Marking.** Numbers tagged **[s0]** come from **one training seed (seed 0)** per arm and have no
-> seed-to-seed error bars yet. Seeds 1 and 2 are running. Untagged numbers are either reproductions of the paper
-> (deterministic setup checks) or properties of the base model. Paired significance tests are reported
-> **within seed 0 only** and are not quoted in any summary until seeds are aggregated.
+*All numbers are means ± SD over training seeds (3 for τ=0.1, uniform, the op 11–17 control and the bandit; 2
+for the fixed band and τ=0.3; 1 for τ=0.5). Paired tests are pooled over seeds with the problem as the unit
+and are not corrected for multiple comparisons. Source tables: docs/results_seeds.md.*
 
-## 1. What we set out to do
+## Summary
 
-Zhang, Neubig and Yue (arXiv 2512.07783) show that RL (GRPO) gives a small language model genuinely new
-reasoning ability only when training problems sit at its **edge of competence**: hard enough that it often
-fails, easy enough that it sometimes succeeds. They pick that band once (11–14 operations) and keep it fixed
-for the whole RL run.
+Zhang, Neubig and Yue (2025) show that reinforcement learning gives a small language model genuinely new
+reasoning ability only when it trains at its *edge of competence*, and they fix that edge at one band of
+difficulty for the whole run. We replace the fixed band with samplers that choose the difficulty of every
+batch as the model learns, keeping everything else identical. Of three adaptive objectives (maximising the
+share of informative gradient, maximising measured learning speed, and maximising headroom), headroom wins
+clearly. A threshold sampler that moves to the next level as soon as the model's success rate on the current one
+exceeds 0.2 (τ=0.1)
+newly solves 95 ± 1.7 of 204 hard problems the base model never solved, against 48 for the paper's fixed band.
+On the three hardest levels, which it never trained on, it solves 27.7 ± 0.6 of 102, against 20.0 ± 1.0 for
+uniform sampling over all levels (p = 0.002). A control that samples τ=0.1's range uniformly from the start
+recovers 81% of that gain, so **training on the right range is most of the win, and the schedule adds a small
+margin** (+8.7 problems, p = 0.017). The adaptive sampler's main contribution is that it found that range
+without being told: the paper's hand-picked band was too low. Two further findings correct our own proposal.
+The sampler with the most informative gradient (τ=0.5, 40% of groups) learns nothing new, because a level's
+success rate tops out near 0.5 under this setup and learning is fastest near 0.1–0.2. And an improvement-rate
+bandit fails for a structural reason: the level it trains improves because it is trained, so its choice pays
+for itself and it never moves on.
 
-GRPO learns only from differences inside a group of G rollouts. A group whose rollouts are all right or all
-wrong gives exactly zero gradient. As the model learns, the levels where groups are mixed move upward. Our
-question: **does a sampler that tracks the moving edge create more new ability than the fixed band, or only
-more reliability on what the model can already do?**
+## 1. Background and question
 
-We keep everything from the paper (model, data, GRPO settings, the strict process-verified reward) and change
-only which difficulty level each training batch is drawn from. Five samplers:
+Group Relative Policy Optimisation (GRPO) samples G completions per problem and computes each completion's
+advantage relative to its group. If all G completions are right, or all are wrong, every advantage is zero
+and the problem contributes no gradient. With per-problem success rate p, the expected fraction of
+informative groups is 1 − pᴳ − (1 − p)ᴳ. With G = 6, this is under 6% at p = 0.01 and above 80% for
+p between 0.3 and 0.7.
 
-| arm | rule |
-|---|---|
-| fixed band | the paper's method: uniform over op 11–14 |
-| uniform random | uniform over op 2–20; controls for "harder problems help" vs "timing matters" |
-| threshold τ ∈ {0.1, 0.3, 0.5} | one active level; move up when its success rate p stays above τ+δ for 2 steps, down when it stays below τ−δ (δ = 0.1, lower bound clamped at τ/2) |
-| bandit | each level is an arm; reward = change in p over m steps; ε-greedy (α = 0.3, ε = 0.1, m = 25). Probe rollouts count against the training budget |
+The paper trains a 100M-parameter model on synthetic arithmetic problems whose difficulty is the number of
+operations (op 2–20), with a strict process-verified reward that requires every reasoning step and the final
+answer to be correct. Its central finding is that RL produces genuinely new ability only on problems near the
+model's edge, and it trains on a fixed band, op 11–14, chosen once.
 
-The headline metric is the paper's own: **problems the base model never solved (0 of 128 samples) that the
-trained model solves at least once**, on a held-out hard set (op 15–20, 204 problems).
+The edge moves as the model learns: a band that is informative at step 0 becomes easy, and levels above it
+become learnable. **Our question is whether a sampler that tracks the moving edge creates more new ability
+than the fixed band, or only more reliability on what the model can already do**, and which notion of "the
+edge" a sampler should aim for.
 
-## 2. Setup and reproduction
+## 2. Method
 
-* **Base model (Gate 1).** The paper's 100M-parameter pretrained checkpoint reproduces its reported base numbers:
-  31 of 32 comparisons are within ±6 points. Example: op 11–14 pass@1 18.3 vs ≈19 (Fig. 9), pass@128 41.8 vs ≈42.
-  The base model solves no problem at op 15–20 in 128 tries. The 1024-token answer limit is not binding
-  (correct answers stay under 440 tokens).
-* **Fixed-band baseline (Gate 3).** Our run (strict reward, 100 steps, batch 1024 × 6 rollouts, one A40)
-  against the paper's released checkpoint, on the same test problems with the same scoring:
+We keep the paper's model, data, GRPO settings and reward. We change only which difficulty level each
+training batch is drawn from, through verl's existing curriculum-sampler hook. Every run uses the same budget:
+100 steps of 1,024 prompts × 6 rollouts on one A40 GPU (about 8 GPU-hours). Probe rollouts used by the
+adaptive samplers to measure success rates count against the budget.
 
-  | test set | base p@1 / p@128 | **ours** p@1 / p@128 | released p@1 / p@128 | paper Fig. 3 (read off) |
-  |---|---|---|---|---|
-  | easy op 2–10 | 85.5 / 98.7 | 85.5 / 98.7 | 85.2 / 98.7 | 87.0 / 99.0 |
-  | medium op 11–14 | 17.5 / 38.4 | **49.2 / 84.8** | 49.4 / 83.9 | 51.0 / 85.5 |
-  | hard op 15–20 | 0 / 0 | **10.2 / 23.5** | 10.8 / 23.5 | 9.5 / 26.0 |
-  | hard newly solved | – | **48 of 204** | 48 of 204 | – |
+| arm | rule | objective |
+|---|---|---|
+| fixed band | uniform over op 11–14 | the paper's method |
+| uniform | uniform over op 2–20 | control: "harder problems help at all" |
+| **uniform op 11–17** | uniform over op 11–17 from step 0 | control: range without schedule (§4.3) |
+| threshold τ=0.5 | one active level; move up when its success rate p stays above τ+δ for 2 steps, down when below τ−δ (δ = 0.1, lower bound clamped at τ/2) | gradient efficiency: stay where p ≈ 0.5 |
+| threshold τ=0.3 | same, τ = 0.3 | intermediate |
+| threshold τ=0.1 | same, τ = 0.1: move up when p > 0.2 | headroom: train where the model mostly fails |
+| bandit | each level is an arm; reward = change in p between probes every m = 25 steps; ε-greedy (α = 0.3, ε = 0.1) | learning speed |
 
-  Every number is within 1 point of the released checkpoint. The pipeline reproduces the paper, so the
-  comparisons below are against a faithful baseline. (The released checkpoint was probably trained with an
-  answer-only reward; we use the strict reward. The match suggests this matters little at 100 steps. We are
-  asking the authors to confirm.)
+A simulated model (success logistic in skill minus level, skill rising over time) was used to test every
+sampler before any GPU time was spent. It caught an oscillation in the threshold rule: adjacent levels
+straddle any band, so the sampler ping-ponged. We added a memory that never moves into a neighbour freshly
+measured on the wrong side.
 
-## 3. Results [s0]
+**Evaluation.** Held-out test sets of 225 easy (op 2–10), 800 medium (op 11–14) and 204 hard (op 15–20)
+problems, 128 samples each at T = 0.7, scored with the paper's evaluation criterion. pass@k uses the unbiased
+estimator. **The headline metric is the paper's own: problems the base model never solved (0 of 128) that
+the trained model solves at least once.** The base model solves none of the 204 hard problems, so on the hard
+set every solved problem is new.
 
-### 3.1 Headline: levels τ=0.1 never trained on
+## 3. Reproduction
 
-Threshold τ=0.1 climbed from op 11 to op 17 and stopped. **op 18–20 are levels it never trained on.**
-Uniform random trained on every level, **including 18–20**.
+The pretrained checkpoint reproduces the paper's base-model numbers: 31 of 32 comparisons are within six
+points, for example op 11–14 pass@128 41.8 against about 42 in the paper's Figure 9. The 1024-token answer
+limit is not binding: correct solutions stay under 440 tokens.
 
-Figure: `results/hard_by_level.png`.
+Our fixed-band run matches the paper's released RL checkpoint within one point on every test set: medium
+pass@1 49.2 vs 49.4, hard pass@128 23.5 vs 23.5, and 48 of 204 hard problems newly solved for both. The
+released checkpoint was probably trained with an answer-only reward rather than the strict one we use; the
+close match suggests this matters little at 100 steps. All later comparisons are against this baseline.
 
-| arm | trained at op 18–20? groups / with nonzero gradient | pass@128 | newly solved (of 102) |
-|---|---|---|---|
-| threshold τ=0.1 | never | 26.5 [s0] | **27** [s0] |
-| uniform random | yes: 16,005 / 487 | 18.6 [s0] | 19 [s0] |
-| fixed band | never | 5.9 [s0] | 6 [s0] |
-| threshold τ=0.3 | never | 4.9 [s0] | 5 [s0] |
-| threshold τ=0.5 | never | 0 [s0] | 0 [s0] |
+## 4. Results
 
-The base model solved none of these 102 problems.
+### 4.1 Main results
 
-**Mechanism.** Uniform drew 16% of its prompts from op 18–20, but 97% of those groups had zero gradient
-[s0]: at the model's skill, every rollout fails. Exposure to a level does not teach it when nothing is ever
-solved. τ=0.1 spent its budget on op 15–17 while those were at the edge (25% of its groups informative
-[s0]), and that skill carried two to three levels beyond anything it trained on.
+| arm | seeds | hard pass@128 | hard newly solved (of 204) | op 18–20 newly solved (of 102) | groups with nonzero gradient |
+|---|---|---|---|---|---|
+| **threshold τ=0.1** | 3 | **46.6 ± 0.8** | **95.0 ± 1.7** | **27.7 ± 0.6** | 24.7% |
+| uniform op 11–17 (control) | 3 | 42.3 ± 1.0 | 86.3 ± 2.1 | 24.0 ± 2.0 | 28.6% |
+| uniform op 2–20 | 3 | 38.2 ± 0.5 | 78.0 ± 1.0 | 20.0 ± 1.0 | 18.8% |
+| fixed band (paper) | 2 | 23.5 ± 0.0 | 48.0 ± 0.0 | 6.0 ± 0.0 | 35.4% |
+| threshold τ=0.3 | 2 | 23.8 ± 1.7 | 48.5 ± 3.5 | 4.0 ± 1.4 | 34.0% |
+| bandit | 3 | 19.9 ± 1.7 | 40.7 ± 3.5 | 3.3 ± 1.5 | 29.1% |
+| threshold τ=0.5 | 1 | 0.0 | 0 | 0 | 40.1% |
 
-Within seed 0 only, paired by problem: τ=0.1 newly solves 9 problems uniform does not, and uniform 1 that
-τ=0.1 does not. **Across 3 seeds each (pooled by problem):** τ=0.1 better on 15 problems, uniform on 2, sign
-test p = 0.0023; +7.7 newly solved per seed [95% CI +3.7, +12.3] (docs/results_seeds.md §2).
+The samplers behaved the same way in every seed. τ=0.1 climbed from op 11 to op 14 by step 8, reached op 15
+at step 16, op 16 at step 22–25 and op 17 at step 45–54, and then stayed at op 17, where its success rate
+hovered around 0.17, below the move-up bound. τ=0.3 settled on op 14 by step 25. τ=0.5 never left op 11.
+The bandit settled on op 12–14.
 
-**Not more gradient, gradient in a different place.** Pooled over the run, τ=0.1 had a *lower* share of
-groups with nonzero gradient (25.0% [s0]) than the fixed band (35.4%), τ=0.3 (33.9%) and τ=0.5 (40.1%); only
-uniform was lower (18.8%). What differs is where the informative groups were. Beyond op 14, τ=0.1 had 20,739
-informative groups, uniform 2,783, every other arm 0 [s0]. That ordering matches op 18–20 newly solved.
+### 4.2 Headroom: levels τ=0.1 never trained on
 
-### 3.2 How much is "harder problems at all" vs adaptive timing
+Neither τ=0.1 nor the fixed band ever trained on op 18–20. Uniform sampling did: 16% of its prompts came from
+those levels. Yet τ=0.1 newly solves 27.7 ± 0.6 of those 102 problems and uniform 20.0 ± 1.0. Paired by
+problem across three seeds each, τ=0.1 solves 15 problems more often than uniform and uniform 2 more often
+than τ=0.1 (sign test p = 0.002; +7.7 problems per seed, 95% CI +3.7 to +12.3). The direction is the same in
+each seed separately.
 
-| arm | hard pass@128 | gain over fixed band | hard newly solved (of 204) |
-|---|---|---|---|
-| fixed band | 23.5 [s0] | – | 48 [s0] |
-| uniform random | 37.7 [s0] | +14.2 [s0] | 77 [s0] |
-| threshold τ=0.1 | 46.1 [s0] | +22.6 [s0] | 94 [s0] |
+The reason is visible in the gradient. 97% of uniform's groups at op 18–20 had zero gradient: at the model's
+current skill, every rollout there fails, and exposure to a level teaches nothing when it is never solved.
+τ=0.1 instead spent 84% of its groups on op 15–17 while those levels were at the edge, with 20,642
+informative groups there per run (uniform: 2,300; the fixed band: 0), and the skill it built carried two to
+three levels beyond anything it trained on.
 
-On the whole hard set, uniform random already captures **63% of τ=0.1's gain** over the fixed band [s0].
-Most of the improvement is "train on harder problems at all". Adaptive timing is the smaller remaining
-margin (+8.4 points, 17 problems [s0]), and it sits on the levels beyond τ=0.1's training range (§3.1).
+### 4.3 Range or schedule?
 
-### 3.3 The τ sweep
+τ=0.1 differs from the fixed band in two ways: it trains on a different range of levels (op 11–17 instead of
+op 11–14), and it visits them in order, moving up only when the current level reaches p > 0.2. To separate
+the two, we trained a control that samples uniformly over op 11–17 from the first step: the same range,
+without the schedule. We chose that range by looking at where τ=0.1 went.
 
-| arm | levels visited | groups with nonzero gradient | hard newly solved |
-|---|---|---|---|
-| τ=0.1 | 11 → 17 by step 51 | 25% [s0] | 94 [s0] |
-| τ=0.3 | 11 → 14 by step 24, then stays | 34% [s0] | 51 [s0] |
-| τ=0.5 | stays at 11 | 40% [s0] | 0 [s0] |
+**The range is most of the win.** The control newly solves 86.3 ± 2.1 hard problems and 24.0 ± 2.0 on op
+18–20: 81% and 83% of τ=0.1's gain over the fixed band. Splitting τ=0.1's gain of 47 hard problems over the
+fixed band into steps: training on harder problems at all (uniform over op 2–20) accounts for 30 (64%),
+restricting to the right range adds 8.3 (18%), and the schedule adds 8.7 (18%). The split on op 18–20 is
+nearly identical (65%, 18%, 17%).
 
-* **Headroom beats gradient throughput** [s0]. The ranking is the reverse of the informative-group share.
-  The arm with the most usable groups (τ=0.5) learns nothing beyond op 14.
-* **τ=0.5 is a fixed point.** The model's success rate at op 11 hovers at 0.55–0.63 and never stays above
-  the 0.6 bound for two steps. This is a property of the rule (δ = 0.1, patience 2), not a bug.
-* **τ=0.3 found the paper's band on its own** and matches it (51 vs 48 newly solved [s0]). If seeds confirm
-  this, it is a positive finding about the paper's hand-picked band: it is where a τ=0.3 rule settles.
+**The schedule adds a small, real margin.** On the whole hard set, τ=0.1 beats the control on 17 problems and
+loses on 5 (p = 0.017; +8.7 per seed, 95% CI +3.3 to +14.3), and it is ahead in every seed. On op 18–20 alone
+the gap is +3.7 problems per seed (8 vs 2, p = 0.11), which is not significant. Per level, the margin sits at
+op 15 (29.0 vs 26.3) and op 16 (20.0 vs 17.7), the levels τ=0.1 trained intensively *while they were at the
+edge*. At op 17, where both arms trained heavily, they are equal (18.3 each).
 
-### 3.4 The bandit: the arm being trained generates its own reward
+**What the adaptive sampler contributes is the range itself.** The paper's band gets 48 hard problems. The
+range τ=0.1 found gets 86 when sampled uniformly and 95 with τ=0.1's schedule. op 11–17 is the paper's band
+plus three levels at which the base model has a success rate of exactly zero; nothing in the base model's
+measurements points to them, and we would not have tried this range without τ=0.1. A sampler that follows
+the edge is a way to find the right range in one run instead of a sweep over ranges. We consider this the
+main positive result of the project, and the schedule's margin a secondary one.
 
-The bandit (reward = improvement in p between probes) is the weakest trained arm: hard newly solved
-40.7 ± 3.5 over 3 seeds, vs 48 for the fixed band. The arm it trains improves because it is trained, so the
-greedy choice pays itself and keeps 90% of every batch. op 15 became learnable anyway (probe p = 0.31 by
-step 50 in seed 0) and reached second place in Q, but an argmax gives second place nothing. After the first
-value update (step 25), op 15+ was sampled only by ε-exploration, at exactly the ε floor of 3.2% of prompts,
-in all 3 seeds. Probe noise (SE ≈ 0.09 against Q margins of about 0.01) makes the order among op 12–15
-partly chance. The trained arm's head start is not chance. A faster probe interval (m = 10, one seed) does not change it: the
-bandit locked onto op 12 even earlier, and op 15+ again got only the ε floor.
+### 4.4 More informative gradient did not mean more learning
 
-Where a level improves fastest: a level's success rate rises in an S, steepest at p ≈ 0.1–0.2 and flat at
-a plateau of about 0.35–0.58 (training reward, T = 1.0) [fixed band s0–s1, uniform s0–s1]. τ=0.5's band is the
-plateau. τ=0.1's band is the steep part. So τ=0.1 is a principled choice, not a lucky pick: its target band
-contains the measured peak. p ≈ 0.5 is the ceiling at this temperature, not the half-solved midpoint, which
-corrects the premise in our proposal that p = 0.5 is the sweet spot. The bandit is held behind the steep part
-mainly by self-reward. Measurement lag is secondary: m = 10 made it lock on sooner, not later. Details: docs/bandit_analysis.md §4 and §6.
-Fixes (softmax selection, optimistic initialisation, removing the self-reward loop) are January work (§7).
+The τ sweep ranks the arms in the reverse order of their gradient efficiency. τ=0.5 keeps 40.1% of its groups
+informative, the highest of any arm, and newly solves 0 hard problems. τ=0.1 keeps 24.7% informative and
+newly solves 95. τ=0.3 (34.0%) and the fixed band (35.4%) sit in between on both counts in the opposite
+order. τ=0.1 did not receive more gradient than the other arms; it received gradient in a different place.
 
-### 3.5 Costs
+τ=0.5 is also a fixed point of its own rule. Its success rate at op 11 hovers at 0.55–0.63 and never stays
+above the 0.6 move-up bound for two steps, so it trains on op 11 for the whole run.
 
-* τ=0.1 is slightly less reliable on easier sets: medium pass@1 46.9 vs 49.2, easy pass@1 84.0 vs 85.5 [s0].
-  Medium pass@128 is equal.
-* No arm forgets: 0 base-solved problems lost on easy or hard, at most 5 on medium [s0].
-* About 8 GPU-hours per run on one A40. The full plan (6 arms × 3 seeds × 100 steps) is about 155 GPU-hours.
+### 4.5 Why τ=0.1: where a level learns fastest
 
-## 4. Correcting our own motivation
+Per-step success rates of each level during training trace an S-shaped curve. Measured on every level that
+starts at p ≈ 0 (fixed band and uniform runs, training reward, T = 1.0), the steepest rise is at
+**p ≈ 0.10–0.21**, at 30–50% of the level's final value, and the curve flattens at a ceiling of p ≈ 0.35–0.58
+(op 11: 0.57). Improvement at p ≈ 0 is also near zero.
 
-Our proposal motivated the project with a step-0 measurement: in the base model, op 13 and op 14 give a
-gradient in 1.5% and 0.02% of groups. "Half the paper's band is dead weight."
+This explains both ends of the τ sweep. τ=0.1's target band, [0.05, 0.2], contains the steepest point: it
+trains each level during its fastest improvement and moves on as the curve starts to flatten. τ=0.5's band,
+[0.4, 0.6], is the ceiling: it maximises informative groups by sitting where nothing is left to learn, and
+because op 11's ceiling (0.57) is below the move-up bound (0.6), it never leaves. Our proposal assumed that
+p = 0.5 was the sweet spot because it maximises the informative fraction. Under this reward and temperature
+p ≈ 0.5 is the end of a level's learning curve, not its midpoint, and the premise was wrong. τ=0.1 is the
+best of the three values we ran and the one the curve predicts. Values between 0.1 and 0.3 are untested.
 
-**That is a snapshot, and it does not last.** In the fixed-band run, training on op 11–12 generalises upward.
-op 13 reaches 37% and op 14 29% informative groups by step 20, measured on the groups GRPO actually trained
-[s0]. After the first ~15 steps the band is not wasteful.
+### 4.6 The bandit: the level it trains generates its own reward
 
-The fixed band's real limitation is the other end. **It never moves past op 14 while op 15–16 become
-learnable**: tracking success rate at op 15 goes 0 → 0.24 by step 50 and 0.25 by step 100; op 16 goes
-0 → 0.13 [s0]. The samplers that follow the edge train exactly there. The step-0 table stays in the report as
-a snapshot, next to the time series (`results/informative_over_training.png`, docs/gate1.md).
+The bandit is the weakest trained arm (40.7 ± 3.5 hard problems, below the fixed band's 48) in all three
+seeds. Its reward is the improvement in a level's success rate between probes, and the level it trains is the
+level that improves, *because* it is trained. The greedy choice therefore pays for itself: it keeps 90% of
+every batch and stays on op 12–14 for the whole run. op 15 became learnable anyway through spill-over (probe
+success rate 0.31 by step 50 in seed 0) and reached second place in value, but under an argmax second place
+gets nothing. After the first value update, op 15 and above were sampled only by ε-exploration, at exactly
+the ε floor of 3.2% of prompts, in all three seeds.
 
-## 5. Engineering notes
+A faster probe interval does not help. With probes every 10 steps instead of 25, the bandit locked on
+sooner, onto an even easier level (op 12), and op 15+ again received only the ε floor. Measurement lag
+therefore makes the problem worse but is not its cause; self-reward is. Probe noise (standard error about
+0.09 against value margins of about 0.01) makes *which* of op 12–15 wins partly chance, but the trained
+level's head start is not. We read this as a structural limitation of improvement-rate curricula for GRPO,
+not a tuning problem.
 
-* verl runs unmodified. Samplers plug into its existing curriculum-sampler hook and log their choice every
-  step. A simulated model caught an oscillation bug in the threshold rule before any GPU time was spent.
-* About four days of wall-clock were lost to RL jobs that hung silently at Ray startup on the cluster. The fix: a private Ray head
-  per job, explicit token auth, and a startup watchdog. Training, evaluation and analysis now run as chained
-  SLURM jobs, unattended.
+### 4.7 Costs: reliability on easier problems
 
-## 6. What is still running
+τ=0.1's new ability on hard problems comes with a small, consistent loss of reliability on easier ones.
+Its easy pass@1 is 83.9 ± 0.2, against 85.3 ± 0.1 for the control, 85.4 for the fixed band and 85.5 for the
+base model; its medium pass@1 is 46.7 ± 0.4, against 49.1 for the control and 49.2 for the fixed band. This
+is not seed noise. The easy gap is about ten times the seed standard deviation, every cross-seed pair (6 of 6
+against the fixed band, 9 of 9 against the control) has τ=0.1 lower, and paired by problem the deficit
+against the base model is −1.6 points (95% CI −3.0 to −0.3). It is spread over op 2–10 rather than
+concentrated in a few problems.
 
-* Seeds 1 and 2 of fixed band, uniform, τ=0.1 and τ=0.3. τ=0.5 stays at one seed: it never leaves op 11,
-  so more seeds would buy nothing (budget decision, 2026-11-20).
-* Control: uniform over op 11–17, seeds 0–2, queued behind the above.
-* Runs are submitted automatically within the cluster's 50-job limit.
-* Checkpoint re-evaluation of the fixed band at steps 25/50/75/100 on levels 9–17, for the all-levels version
-  of §4.
-* `eval/aggregate_seeds.py` turns every new seed into mean ± spread per arm and a pooled problem-level paired
-  test. It is already tested on seed 0.
+Reachability is unaffected. Easy pass@128 is 98.5 for τ=0.1, uniform and the control, each loses on average
+0.3 easy problems the base model could solve, and τ=0.1's medium pass@128 equals the control's (85.0 vs 84.9).
+τ=0.1 is less reliable on easier problems, not less able. The medium gap follows from where it trained: it
+left op 11–14 by step 8 and spent only 16% of its groups there, against 57% for the control. The easy gap
+does not follow from that alone, since the control also never trains on op 2–10 and stays at the base
+model's level. A plausible but untested explanation is that from step 25 onward every τ=0.1 batch is at op 16
+or 17 with a success rate below 0.2, so most of its gradient pushes away from failing solutions.
 
-## 7. What is left for January
+The practical reading: if the right range is known, sampling it uniformly gets 81% of the gain at no
+reliability cost; τ=0.1 finds the range and adds a small margin on the hardest problems at a cost of about
+1.5 points of easy and 2.5 points of medium pass@1.
 
-1. **Seeds.** Confirm or retract §3 with 3 seeds for τ=0.1, uniform and the op 11–17 control, and 2 for the other arms (seed policy, docs/budget.md). Replace every [s0] tag with mean ± spread. Report the
-   pooled paired test for τ=0.1 vs uniform on op 18–20.
-2. **Bandit fixes.** Softmax selection, optimistic initialisation, and removing the self-reward loop (the real fix),
-   3 seeds each, ≈ 25 GPU-h per fix (docs/bandit_analysis.md §7).
-3. **Longer runs.** 100 steps is half the paper's run. Extend the best arm and the fixed band to ~200 steps:
-   does the fixed band catch up, or does the gap widen?
-4. **Range vs schedule** (running, 3 seeds; results expected before Dec 3). Uniform over op 11–17 is exactly the range
-   τ=0.1 visited, sampled from step 0 without the schedule. If it matches τ=0.1 on op 18–20, the headline gain
-   is the range, not the timing. This is the main objection a reviewer could raise.
-5. **τ = 0.15 and τ = 0.2.** The learning curve peaks at p ≈ 0.10–0.21 (§3.4). τ=0.1 moves up at p > 0.2,
-   so it spends its time while p climbs to 0.2. Its realised mean batch p was 0.18 [s0], inside the peak.
-   Testing "the curve predicts the peak" needs arms that *train inside* the peak at different points.
-   **Design caveat (decide before running):** with the current rule (δ = 0.1, patience 2), τ=0.15 and τ=0.2 move
-   up at p > 0.25 and p > 0.30. Both bounds are above the predicted peak, so those arms would straddle it, not
-   train in it. Options:
-   * **smaller δ**: δ = 0.05 gives bands [0.10, 0.20] (τ=0.15) and [0.15, 0.25] (τ=0.2). First rerun the
-     mock harness (samplers/mock.py, CPU only): it caught ping-pong at δ = 0.1, and a tighter band makes that
-     more likely;
-   * **target the band directly**: a rule that trains the level whose last measured p is in [0.10, 0.21]
-     (the lowest such level, or the closest to 0.15), so the hypothesis is the sampler itself.
-   Cost either way: 2 seeds each ≈ 38 GPU-h, 3 seeds ≈ 57 GPU-h.
-6. **τ=0.5 fix point.** Mostly answered by §3.4: op 11's ceiling (≈ 0.57 at T = 1) is below the move-up bound
-   (0.6), so the target sits above what the level can reach. A rerun with δ = 0.05 is low priority.
-7. **Per-problem selection** (future work, noted in Gate 1). Within a level, problems are mostly always or
-   never solved. Picking problems by their own measured p could raise the informative share well above ~40%.
-8. **Final report**: method, all arms with seeds, the op 18–20 analysis, the motivation correction, compute.
+## 5. Correcting our own motivation
+
+Our proposal motivated the project with a step-0 measurement: in the base model, op 13 and op 14 give an
+informative group 1.5% and 0.02% of the time, so "half the paper's band is dead weight". That is a snapshot
+and it does not last. In the fixed-band run, training on op 11–12 generalises upward: op 13 reaches 37% and
+op 14 29% informative groups by step 20. After the first 15 steps the band is not wasteful. Its real
+limitation is the other end: it never moves past op 14 while op 15–17 become learnable (op 15 goes from never
+solved to 27% informative groups by step 50 without being trained on). That is the gap the adaptive samplers
+close, and §4.3 shows that closing it is most of what matters.
+
+## 6. Limitations
+
+* **100 steps.** This is half of the paper's run length. The fixed band might catch up with more steps, or the
+  gap might widen; we have not tested it.
+* **Seeds.** Three seeds for the main arms, two for the fixed band and τ=0.3, one for τ=0.5. The fixed band's
+  two seeds agree exactly on the hard set (48 and 48), and τ=0.5's result (no movement, nothing learned) is a
+  property of its rule, so we do not expect more seeds to change those conclusions.
+* **The control's range is chosen in hindsight**, from τ=0.1's own trajectory. That is the point of the
+  control, but it means the "81%" is an upper bound on what a range chosen in advance would achieve.
+* **Multiple comparisons.** The tests are not corrected. The τ=0.1 vs uniform result (p = 0.002) survives any
+  reasonable correction; τ=0.1 vs the control on the whole hard set (p = 0.017) is borderline under one.
+* **One τ grid.** We ran τ ∈ {0.1, 0.3, 0.5}. The learning-curve analysis predicts a peak between 0.1 and 0.2
+  but we have not tested values there.
+* **One model and one task family.** All results are for the paper's 100M-parameter model on synthetic
+  arithmetic graphs.
+
+## 7. Plan for the final report (January)
+
+1. **τ = 0.15 and τ = 0.2.** Test whether arms that train inside the predicted peak (p ≈ 0.10–0.21) beat τ=0.1.
+   With δ = 0.1 their move-up bounds (0.25, 0.30) lie above the peak, so these arms need δ = 0.05 (bands
+   [0.10, 0.20] and [0.15, 0.25], checked first in the simulator for oscillation) or a rule that targets the
+   band directly. About 38 GPU-hours for two seeds each.
+2. **Range-finding as a method.** Run τ=0.1 for a short burn-in, then train uniformly on the range it found.
+   If this matches τ=0.1, it combines the range-finding with the control's lack of reliability cost.
+3. **200-step runs** of τ=0.1, the control and the fixed band.
+4. **Bandit fixes**, three seeds each (about 25 GPU-hours per fix): softmax selection instead of argmax,
+   optimistic initialisation, and, the one that targets the mechanism, a reward that excludes the improvement
+   an arm receives from its own training.
+5. **Reliability cost.** Test whether keeping a small share of op 11–14 in τ=0.1's batches removes the easy
+   and medium cost without losing the hard-set gain.
+6. **Per-problem selection** within a level: problems are mostly always or never solved, so choosing problems
+   by their own success rate could raise the informative share well above 40%.
+
+## 8. Engineering and compute
+
+verl runs unmodified; the samplers plug into its curriculum-sampler hook and log their choice, success-rate
+estimates and internal state every step. Training, checkpoint conversion, evaluation and analysis run as
+chained SLURM jobs. About four days of wall-clock time and 48 GPU-hours were lost to training jobs that hung
+silently at startup; the cause was two jobs on the same node colliding on Ray's default ports and temporary
+directory, fixed with a private Ray head and port range per job. Since then every job carries a watchdog that
+cancels it if its step counter or log has not advanced for 30 minutes, and logs why. The 17 completed
+100-step runs took 139 GPU-hours (8.2 per run on one A40); the project total including evaluation, the
+bandit ablation, two cancelled runs and the hang is about 220 GPU-hours.

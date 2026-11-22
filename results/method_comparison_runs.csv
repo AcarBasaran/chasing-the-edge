@@ -41,6 +41,12 @@ threshold_tau5_s0,threshold_tau5,0,test_hard,204,c_eval,0.000,0.000,0.000,0,204
 uniform_11_17_s0,uniform_11_17,0,test_easy,225,c_eval,85.378,96.294,98.222,0,3
 uniform_11_17_s0,uniform_11_17,0,test_medium,800,c_eval,49.136,69.469,84.500,372,493
 uniform_11_17_s0,uniform_11_17,0,test_hard,204,c_eval,20.286,30.147,43.137,88,204
+uniform_11_17_s1,uniform_11_17,1,test_easy,225,c_eval,85.316,96.548,98.667,0,3
+uniform_11_17_s1,uniform_11_17,1,test_medium,800,c_eval,49.271,70.138,84.625,371,493
+uniform_11_17_s1,uniform_11_17,1,test_hard,204,c_eval,20.335,29.711,41.176,84,204
+uniform_11_17_s2,uniform_11_17,2,test_easy,225,c_eval,85.247,96.750,98.667,0,3
+uniform_11_17_s2,uniform_11_17,2,test_medium,800,c_eval,48.991,69.845,85.625,379,493
+uniform_11_17_s2,uniform_11_17,2,test_hard,204,c_eval,20.646,30.664,42.647,87,204
 uniform_s0,uniform,0,test_easy,225,c_eval,86.569,97.000,98.667,0,3
 uniform_s0,uniform,0,test_medium,800,c_eval,47.279,67.456,82.875,358,493
 uniform_s0,uniform,0,test_hard,204,c_eval,16.314,25.628,37.745,77,204
