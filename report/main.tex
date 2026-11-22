@@ -271,6 +271,12 @@ that a move needs. Ceilings measured independently in the fixed band and the con
 so a ceiling just under 0.2 and a climb too slow for 100 steps cannot be told apart. \tauone\ is therefore
 adaptive in the first half of its run, and its main contribution is the range it passes through.
 
+\textbf{The climb buys compute-efficiency, not final quality.} Evaluating the step-25/50/75 checkpoints,
+\tauone\ at step 25 (a quarter of the compute: 2.0 vs.\ 7.8 GPU-hours) newly solves 54 hard problems, matching the
+fixed band's final 48 (+6, CI $[+0.2,+12.0]$, $p=0.11$). The control at step 25 has 33, because it spends 43\% of its
+early batches on op 15--17 while almost no group there has a gradient. It catches up by step 50 (75 vs.\ 79,
+$p=0.11$), and the final $+8.7$ forms during \tauone's stall at op 17. (Five comparisons, uncorrected.)
+
 \subsection{More informative gradient did not mean more learning}
 \label{sec:signal}
 

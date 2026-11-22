@@ -17,10 +17,10 @@ seeds; details in docs/results_seeds.md.
 | 9 | Where learning is fastest | "A level improves fastest when the model solves it ten to twenty percent of the time and stops at about half, so τ=0.1 climbs through that fast stretch while it lasts and τ=0.5 trains where nothing is left, which corrects our own proposal." | 0:55 |
 | 10 | The bandit | "Rewarding improvement fails because the level you train improves *because* you train it, so the bandit keeps rewarding its own choice and never moves on." | 0:50 |
 | 11 | Room to improve wins | "On the three hardest levels, which τ=0.1 never trained on, it solves nearly 28 of 102 new problems; uniform sampling, which did train there, solves 20." | 0:50 |
-| 12A | The range is most of the win | "Training uniformly on the levels τ=0.1 found gets 81% of its gain: the paper's band gets 48, the range τ=0.1 found gets 86, the climb takes it to 95. The contribution is finding that range." | 1:10 |
+| 12A | Range wins; the climb buys speed | "At a quarter of the compute τ=0.1 already matches the paper's final result, 54 against 48, while the control is at 33 because it spends its first steps on levels nobody can learn yet. The control catches up by step 50, and by the end the range τ=0.1 found, 86 of its 95, is most of the win. The climb buys speed, not final quality." | 1:20 |
 | 13A | Cost and next steps | "τ=0.1 gives up about 1.5 points of reliability on easy problems for the most new ability; if you already know the range, sample it uniformly, and if you don't, τ=0.1 finds it." | 0:50 |
 
-Total ≈ 9:50. If short on time, cut slide 6 to one sentence on slide 5 and drop slide 10's speaker note.
+Total ≈ 10:00. If short on time, cut slide 6 to one sentence on slide 5 and drop slide 10's speaker note.
 
 ## Likely questions
 
