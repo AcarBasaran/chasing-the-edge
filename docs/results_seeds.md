@@ -23,8 +23,9 @@ Files: `results/seeds_by_set.csv`, `results/seeds_hard_levels.csv`, `results/see
 | threshold τ=0.5 | 1 | 0.0 | 0.0 | 0 | 0 | 40.1% |
 | released RL checkpoint | 1 | 10.8 | 23.5 | 48 | 5 | – |
 
-* **No arm trained on op 18–20 except uniform over op 2–20** (16,090 groups per run, 517 with a nonzero
-  gradient). τ=0.1 and the control never saw those levels.
+* **Only uniform over op 2–20 trained on op 18–20 by design** (16,090 groups per run, 517 with a nonzero
+  gradient). The bandit reached them only through ε-exploration (5,423 groups, 3 with a nonzero gradient).
+  τ=0.1, τ=0.3, τ=0.5, the fixed band and the control never saw those levels.
 * **τ=0.1's path is the same in all three seeds:** op 11 → 14 by step 7–8, op 15 at step 16, op 16 at
   step 22–25, op 17 at step 45–54, then op 17 to the end (batch p at op 17 ≈ 0.17, below the 0.2 move-up bound).
 * **Where the gradient went** (informative groups per run, mean over seeds): op 15–17: τ=0.1 20,642, control

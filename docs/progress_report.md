@@ -1,5 +1,8 @@
 # Chasing the Edge: Adaptive Difficulty for GRPO
 
+> **The version to submit is the LaTeX one, [report/main.tex](../report/main.tex)** (ACL style, about 4½ pages plus references).
+> It is restructured into the course's sections and shortened; this Markdown draft keeps the longer prose.
+
 **COMP550 progress report** · Eren Acar Basaran, Turan Berke Yakarer · draft of 2026-11-22, due Dec 6
 
 *All numbers are means ± SD over training seeds (3 for τ=0.1, uniform, the op 11–17 control and the bandit; 2
@@ -210,7 +213,7 @@ reliability cost; τ=0.1 finds the range and adds a small margin on the hardest 
 
 Our proposal motivated the project with a step-0 measurement: in the base model, op 13 and op 14 give an
 informative group 1.5% and 0.02% of the time, so "half the paper's band is dead weight". That is a snapshot
-and it does not last. In the fixed-band run, training on op 11–12 generalises upward: op 13 reaches 37% and
+and it does not last. In the fixed-band run (seed 0), training on op 11–12 generalises upward: op 13 reaches 37% and
 op 14 29% informative groups by step 20. After the first 15 steps the band is not wasteful. Its real
 limitation is the other end: it never moves past op 14 while op 15–17 become learnable (op 15 goes from never
 solved to 27% informative groups by step 50 without being trained on). That is the gap the adaptive samplers

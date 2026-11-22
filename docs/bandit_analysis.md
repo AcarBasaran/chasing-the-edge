@@ -53,8 +53,9 @@ Share of training prompts at op 15–20, by phase (ε = 0.1 over 19 levels puts 
 | 2 | 31.9% | **3.2%** | **0 of 72** | 179 |
 
 After the first value update, ε-exploration was the only thing that ever sampled op 15+, in all three seeds:
-the op 15+ share equals the ε floor exactly. The bandit's useful signal beyond op 14 (161 informative groups
-on average over the run) is about 1% of τ=0.1's (20,739).
+the op 15+ share equals the ε floor exactly. The bandit's useful signal beyond op 14 (164 informative groups
+at op 15–20 per run, mean over 3 seeds) is under 1% of τ=0.1's (20,642, all at op 15–17;
+`results/seeds_gradient_budget.csv`).
 
 ## 4. Is it just the probe interval? No: ablation m = 10
 
@@ -97,7 +98,8 @@ objective reached by different mechanics. **Measured: the curve is steepest at p
 
 Figure: `results/scurve.png` (`eval/scurve.py`, data `results/scurve.csv`). It uses the per-step batch p of each
 level that starts at p ≈ 0 (~256 groups × 6 rollouts per level per step for the fixed band, training reward, T = 1.0),
-with a 5-step mean and the rate measured over ±5 steps.
+with a 5-step mean and the rate measured over ±5 steps. Runs: fixed band seeds 0–1 and uniform seeds 0–1
+(`eval/scurve.py` defaults; uniform seed 2 finished later and is not included).
 
 | run | level | steepest rise (Δp per 10 steps) | **p at the steepest point** | plateau p (last 20 steps) |
 |---|---|---|---|---|
