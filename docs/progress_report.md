@@ -463,6 +463,16 @@ caught up by step 50 (79 vs 75, p = 0.11; op 18–20 tied, 16.7 vs 16.3). The le
 from concentrated training on op 17 late in the run, not from the climb**, whose lead had disappeared by step
 50. That late concentration is not itself adaptive.
 
+**The climb buys compute-efficiency, not final quality.** At step 25, a quarter of the training compute (2.0
+GPU-hours against the fixed band's 7.8 for 100 steps), τ=0.1 has already newly solved 54 hard problems. The
+paper's fixed band reaches 48 after all 100 steps. Paired by problem, τ=0.1 at step 25 is +6 problems ahead of the
+fixed band's final result (95% CI +0.2 to +12.0; sign test p = 0.11, 17 vs 8 problems; op 18–20 tied): it matches
+the paper's final result and probably exceeds it. The control at step 25 has only 33. It spent 43% of its first
+25 steps on op 15–17 while those levels were still at p ≈ 0, where only about 2% of groups had a gradient (183–265
+informative groups per run, against τ=0.1's 2,167–2,404). The control catches up by step 50, so the climb's
+advantage is speed. Final quality comes mostly from the range (§6.3). These five comparisons are not corrected for
+multiple comparisons, and the fixed band's own step-25 checkpoint was not evaluated.
+
 ### 6.9 Success rate alone does not predict learning speed
 
 At the same success rate, harder levels learn more slowly. τ=0.1 trained op 13 to op 17 in the same band of

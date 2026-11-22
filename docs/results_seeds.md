@@ -147,6 +147,9 @@ the arms that keep training near the base of the range. The control has no such 
    move-up trigger τ + δ and stops at the first level whose success rate stays below it. τ=0.1 is therefore
    adaptive in the first half of the run only (46–55% of its steps at op 17). The law is the hypothesis for
    the January τ = 0.15 and 0.2 runs (δ = 0.1, triggers 0.25 and 0.30).
+7. **The climb buys compute-efficiency, not final quality** (§6): at step 25 (a quarter of the compute)
+   τ=0.1 newly solves 54 hard problems, matching the fixed band's final 48 (+6 [+0.2, +12.0], p = 0.11),
+   while the control, spending its early budget on op 15–17 at p ≈ 0, has 33. The control catches up by step 50.
 6. **Success rate alone does not predict learning speed** (§6): at the same p ≈ 0.10–0.21, op 16–17 learned
    10–40× more slowly than op 13–14. Any rule that targets a success rate inherits this.
 
@@ -248,6 +251,26 @@ the same size as at step 100. So the step-100 advantage over the control comes f
 late, not from the climb itself, whose lead had vanished by step 50. That concentration is not adaptive: a
 fixed schedule (a short climb, then op 17) would do the same. The four per-step tests are uncorrected, and step
 50 coincides with τ=0.1 arriving at op 17.
+
+
+**The climb buys compute-efficiency, not final quality** (`eval/compute_efficiency.py`,
+`results/compute_efficiency.csv`):
+* **At a quarter of the compute, τ=0.1 matches the paper's final result.** At step 25 τ=0.1 has newly solved
+  54.0 hard problems (56, 57, 49). The fixed band, the paper's method, has 48 after all 100 steps (48, 48).
+  Paired by problem the difference is +6.0 [95% CI +0.2, +12.0], with 17 problems better and 8 worse (sign
+  test p = 0.11), and op 18–20 is tied (6.3 vs 6.0). So "matches, and probably exceeds", not "beats". Its first
+  25 steps took 2.0 GPU-hours against the fixed band's 7.6–8.0 for 100 steps: 25–26% of the GPU time and 25%
+  of the rollouts.
+* **The control wastes its early budget on levels the model cannot yet solve.** At step 25 it has 33, which is
+  15 below the fixed band's final result (3 vs 27 problems, p = 10⁻⁵). In steps 0–24 it put 43% of its groups
+  on op 15–17, and only 1.7–2.4% of those had a nonzero gradient (183–265 groups per run). τ=0.1 had
+  2,167–2,404 informative groups there in the same steps, by reaching op 15–16 only after op 13–14 had made
+  them learnable. Overall, 19–20% of the control's early groups were informative, against 27% for τ=0.1.
+* **The control catches up by step 50** (75 vs 79, p = 0.11; op 18–20 tied), so the climb's early lead does
+  not survive to the end. The final margin (+8.7) forms later, during the stall at op 17 (above). Final quality
+  comes mostly from the range (§3); the climb's own contribution is reaching a given result sooner.
+* Caveat: five comparisons in this paragraph and the table above (four per-step tests, one vs the fixed band),
+  none corrected for multiple comparisons. The fixed band's own step-25 checkpoint was not evaluated.
 
 **Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.**
 DECIDED 2026-11-22: **δ = 0.1**, so the two arms have triggers 0.25 and 0.30, genuinely different from τ=0.1's

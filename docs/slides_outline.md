@@ -172,13 +172,21 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 
 ## Act 4: what actually produced the gain
 
-### Slide 12A. The right range is most of the win, and τ=0.1 found it   **(primary)**
+### Slide 12A. The right range is most of the final win; the climb buys speed   **(primary)**
 
-* **Headline:** Training uniformly on the levels τ=0.1 visited gets most of its gain. The adaptive
-  sampler's contribution is that it *found* those levels.
+* **Headline:** Training uniformly on the levels τ=0.1 found gets most of its final gain. What the climb
+  buys is speed: at a quarter of the compute, τ=0.1 already matches the paper's final result.
 * **The control.** Uniform over levels 11–17 (where τ=0.1 went) from the first step: same levels, same
   compute, no step-by-step climb. We chose this range after seeing where τ=0.1 went.
-* One stacked bar per test set, "share of τ=0.1's gain over the fixed band":
+* **At step 25 (25% of the compute), τ=0.1 has newly solved 54 hard problems. The paper's method, after
+  all 100 steps: 48.** (+6, 95% CI +0.2 to +12, p = 0.11: it matches, and is probably ahead.) That is 2.0
+  against 7.8 GPU-hours.
+* The control at step 25 has only 33. In its first 25 steps it spent 43% of its training on levels 15–17
+  while the model could not solve them yet: only 2% of those problems taught anything.
+* The control catches up by step 50 (75 vs 79). The final gap (+9) forms later, while τ=0.1 sits on level
+  17. **The climb buys compute-efficiency, not final quality.**
+* Decomposition of the final gain (backup figure: one stacked bar per test set, "share of τ=0.1's gain over
+  the fixed band"):
 
   | | whole hard set (+47 problems) | levels 18–20 (+21.7) |
   |---|---|---|
@@ -189,10 +197,13 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * **The climb adds a small margin:** +8.7 hard problems per seed (better on 17 problems, worse on 5,
   p = 0.017); on levels 18–20, +3.7 (8 vs 2, p = 0.11, not significant).
 * **Bottom line, in the slide's largest type:**
-  > The paper's hand-picked band: **48**. The range τ=0.1 found on its own: **86**. With τ=0.1's climb: **95**.
+  > At **25%** of the compute, τ=0.1 matches the paper's final result (**54** vs **48**).
+  > At **100%**: the paper's band **48**, the range τ=0.1 found **86**, with the climb **95**.
 * Small print: *We would not have tried 11–17 without τ=0.1: it is the paper's band plus three levels the
-  starting model cannot solve at all.*
-* **Figure:** the stacked bars (new; numbers in docs/results_seeds.md §3).
+  starting model cannot solve at all. Five comparisons on this slide, not corrected for multiple comparisons.*
+* **Figure:** `results/timeline_table_slide.png` (`eval/plot_timeline_table.py`): newly solved at steps
+  25/50/75/100, τ=0.1 vs control vs the fixed band's final result, with the paired gaps. The stacked bars of
+  the decomposition move to backup.
 
 ### Slide 13A. What it costs, and what is next   **(primary)**
 
@@ -239,6 +250,7 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 | title | content |
 |---|---|
 | How adaptive is τ=0.1? Stall law, steps climbing vs stalled, rise per level | docs/results_seeds.md §6 |
+| Range vs climb: decomposition of the final gain (stacked bars, was 12A's figure) | docs/results_seeds.md §3 |
 | Easy/medium reliability: seed by seed | table from docs/results_seeds.md §4 (per-seed pass@1, paired CIs, 6/6 and 9/9 seed pairs) |
 | All arms, all test sets | `results/method_comparison.png`; docs/results_seeds.md §1 |
 | Paired tests, full table | docs/results_seeds.md §2 (both levels 18–20 and 15–20) |
@@ -266,7 +278,8 @@ above ("difficulty (operations)", "share of problems that teach something", "sol
 | `informative_fraction_by_level.png` | 3 | **mostly OK** (8 in, ≈ 12–14 pt); "paper's fixed band" label touches the dashed curves; 5-entry legend is more than slide 3 needs | drop the two dashed level-mean curves and the T=0.7 line for the slide version |
 | `method_comparison.png` | 13 thumbnail / backup | **small** (6 panels, 6.5–8 pt); value labels collide with seed dots | for slide 13 use a hard-column-only version; full figure stays backup |
 | `per_problem_p_hist.png` | backup | small (≈ 9 pt) but uncluttered | acceptable for backup |
-| decomposition bar (12A), per-level bars (12B) | 12 | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
+| `timeline_table_slide.png` | 12A | **OK** (new, 13.3 in, 12.5–22 pt) | – |
+| decomposition bar (backup), per-level bars (12B) | backup, 12B | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
 
 * Slide 5: three-column graphic (no data).
 * Slide 8: no figure; two lines of large type.

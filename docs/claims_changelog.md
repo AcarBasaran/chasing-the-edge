@@ -887,3 +887,193 @@ not from the climb itself, whose lead had vanished by step 50. That concentratio
 > 17: +8 at step 75 (op 18–20: +6, p = 0.023) and +8.7 at step 100. **The final advantage over the control comes
 > from concentrated training on op 17 late in the run, not from the climb**, whose lead had disappeared by step
 > 50. That late concentration is not itself adaptive.
+
+# Round 4 (2026-11-22): the climb buys compute-efficiency, not final quality
+
+## docs/results_seeds.md: new finding: compute-efficiency of the climb
+
+**Before:**
+
+> 50 coincides with τ=0.1 arriving at op 17.
+> 
+
+**After:**
+
+> 50 coincides with τ=0.1 arriving at op 17.
+> 
+> 
+> **The climb buys compute-efficiency, not final quality** (`eval/compute_efficiency.py`,
+> `results/compute_efficiency.csv`):
+> * **At a quarter of the compute, τ=0.1 matches the paper's final result.** At step 25 τ=0.1 has newly solved
+>   54.0 hard problems (56, 57, 49). The fixed band, the paper's method, has 48 after all 100 steps (48, 48).
+>   Paired by problem the difference is +6.0 [95% CI +0.2, +12.0], with 17 problems better and 8 worse (sign
+>   test p = 0.11), and op 18–20 is tied (6.3 vs 6.0). So "matches, and probably exceeds", not "beats". Its first
+>   25 steps took 2.0 GPU-hours against the fixed band's 7.6–8.0 for 100 steps: 25–26% of the GPU time and 25%
+>   of the rollouts.
+> * **The control wastes its early budget on levels the model cannot yet solve.** At step 25 it has 33, which is
+>   15 below the fixed band's final result (3 vs 27 problems, p = 10⁻⁵). In steps 0–24 it put 43% of its groups
+>   on op 15–17, and only 1.7–2.4% of those had a nonzero gradient (183–265 groups per run). τ=0.1 had
+>   2,167–2,404 informative groups there in the same steps, by reaching op 15–16 only after op 13–14 had made
+>   them learnable. Overall, 19–20% of the control's early groups were informative, against 27% for τ=0.1.
+> * **The control catches up by step 50** (75 vs 79, p = 0.11; op 18–20 tied), so the climb's early lead does
+>   not survive to the end. The final margin (+8.7) forms later, during the stall at op 17 (above). Final quality
+>   comes mostly from the range (§3); the climb's own contribution is reaching a given result sooner.
+> * Caveat: five comparisons in this paragraph and the table above (four per-step tests, one vs the fixed band),
+>   none corrected for multiple comparisons. The fixed band's own step-25 checkpoint was not evaluated.
+> 
+
+## docs/results_seeds.md: claims list: compute-efficiency
+
+**Before:**
+
+> 6. **Success rate alone does not predict learning speed** (§6):
+
+**After:**
+
+> 7. **The climb buys compute-efficiency, not final quality** (§6): at step 25 (a quarter of the compute)
+>    τ=0.1 newly solves 54 hard problems, matching the fixed band's final 48 (+6 [+0.2, +12.0], p = 0.11),
+>    while the control, spending its early budget on op 15–17 at p ≈ 0, has 33. The control catches up by step 50.
+> 6. **Success rate alone does not predict learning speed** (§6):
+
+## docs/progress_report.md: report §6.8: compute-efficiency paragraph
+
+**Before:**
+
+> 50. That late concentration is not itself adaptive.
+> 
+
+**After:**
+
+> 50. That late concentration is not itself adaptive.
+> 
+> **The climb buys compute-efficiency, not final quality.** At step 25, a quarter of the training compute (2.0
+> GPU-hours against the fixed band's 7.8 for 100 steps), τ=0.1 has already newly solved 54 hard problems. The
+> paper's fixed band reaches 48 after all 100 steps. Paired by problem, τ=0.1 at step 25 is +6 problems ahead of the
+> fixed band's final result (95% CI +0.2 to +12.0; sign test p = 0.11, 17 vs 8 problems; op 18–20 tied): it matches
+> the paper's final result and probably exceeds it. The control at step 25 has only 33. It spent 43% of its first
+> 25 steps on op 15–17 while those levels were still at p ≈ 0, where only about 2% of groups had a gradient (183–265
+> informative groups per run, against τ=0.1's 2,167–2,404). The control catches up by step 50, so the climb's
+> advantage is speed. Final quality comes mostly from the range (§6.3). These five comparisons are not corrected for
+> multiple comparisons, and the fixed band's own step-25 checkpoint was not evaluated.
+> 
+
+## report/main.tex: LaTeX §stall: compute-efficiency paragraph
+
+**Before:**
+
+> adaptive in the first half of its run, and its main contribution is the range it passes through.
+
+**After:**
+
+> adaptive in the first half of its run, and its main contribution is the range it passes through.
+> 
+> \textbf{The climb buys compute-efficiency, not final quality.} Evaluating the step-25/50/75 checkpoints,
+> \tauone\ at step 25 (a quarter of the compute: 2.0 vs.\ 7.8 GPU-hours) newly solves 54 hard problems, matching the
+> fixed band's final 48 (+6, CI $[+0.2,+12.0]$, $p=0.11$). The control at step 25 has 33, because it spends 43\% of its
+> early batches on op 15--17 while almost no group there has a gradient. It catches up by step 50 (75 vs.\ 79,
+> $p=0.11$), and the final $+8.7$ forms during \tauone's stall at op 17. (Five comparisons, uncorrected.)
+
+## docs/slides_outline.md: slide 12A headline: adds the compute-efficiency point
+
+**Before:**
+
+> ### Slide 12A. The right range is most of the win, and τ=0.1 found it   **(primary)**
+> 
+> * **Headline:** Training uniformly on the levels τ=0.1 visited gets most of its gain. The adaptive
+>   sampler's contribution is that it *found* those levels.
+
+**After:**
+
+> ### Slide 12A. The right range is most of the final win; the climb buys speed   **(primary)**
+> 
+> * **Headline:** Training uniformly on the levels τ=0.1 found gets most of its final gain. What the climb
+>   buys is speed: at a quarter of the compute, τ=0.1 already matches the paper's final result.
+
+## docs/slides_outline.md: slide 12A: compute-efficiency bullets; decomposition moves to backup
+
+**Before:**
+
+> * One stacked bar per test set, "share of τ=0.1's gain over the fixed band":
+
+**After:**
+
+> * **At step 25 (25% of the compute), τ=0.1 has newly solved 54 hard problems. The paper's method, after
+>   all 100 steps: 48.** (+6, 95% CI +0.2 to +12, p = 0.11: it matches, and is probably ahead.) That is 2.0
+>   against 7.8 GPU-hours.
+> * The control at step 25 has only 33. In its first 25 steps it spent 43% of its training on levels 15–17
+>   while the model could not solve them yet: only 2% of those problems taught anything.
+> * The control catches up by step 50 (75 vs 79). The final gap (+9) forms later, while τ=0.1 sits on level
+>   17. **The climb buys compute-efficiency, not final quality.**
+> * Decomposition of the final gain (backup figure: one stacked bar per test set, "share of τ=0.1's gain over
+>   the fixed band"):
+
+## docs/slides_outline.md: slide 12A bottom line
+
+**Before:**
+
+> * **Bottom line, in the slide's largest type:**
+>   > The paper's hand-picked band: **48**. The range τ=0.1 found on its own: **86**. With τ=0.1's climb: **95**.
+
+**After:**
+
+> * **Bottom line, in the slide's largest type:**
+>   > At **25%** of the compute, τ=0.1 matches the paper's final result (**54** vs **48**).
+>   > At **100%**: the paper's band **48**, the range τ=0.1 found **86**, with the climb **95**.
+
+## docs/slides_outline.md: slide 12A figure = the timeline table
+
+**Before:**
+
+> * Small print: *We would not have tried 11–17 without τ=0.1: it is the paper's band plus three levels the
+>   starting model cannot solve at all.*
+> * **Figure:** the stacked bars (new; numbers in docs/results_seeds.md §3).
+
+**After:**
+
+> * Small print: *We would not have tried 11–17 without τ=0.1: it is the paper's band plus three levels the
+>   starting model cannot solve at all. Five comparisons on this slide, not corrected for multiple comparisons.*
+> * **Figure:** `results/timeline_table_slide.png` (`eval/plot_timeline_table.py`): newly solved at steps
+>   25/50/75/100, τ=0.1 vs control vs the fixed band's final result, with the paired gaps. The stacked bars of
+>   the decomposition move to backup.
+
+## docs/slides_outline.md: backup: decomposition bars
+
+**Before:**
+
+> | How adaptive is τ=0.1? Stall law, steps climbing vs stalled, rise per level | docs/results_seeds.md §6 |
+
+**After:**
+
+> | How adaptive is τ=0.1? Stall law, steps climbing vs stalled, rise per level | docs/results_seeds.md §6 |
+> | Range vs climb: decomposition of the final gain (stacked bars, was 12A's figure) | docs/results_seeds.md §3 |
+
+## docs/slides_outline.md: figure checklist
+
+**Before:**
+
+> | decomposition bar (12A), per-level bars (12B) | 12 | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
+
+**After:**
+
+> | `timeline_table_slide.png` | 12A | **OK** (new, 13.3 in, 12.5–22 pt) | – |
+> | decomposition bar (backup), per-level bars (12B) | backup, 12B | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
+
+## docs/speaker_notes.md: speaker line 12A
+
+**Before:**
+
+> | 12A | The range is most of the win | "Training uniformly on the levels τ=0.1 found gets 81% of its gain: the paper's band gets 48, the range τ=0.1 found gets 86, the climb takes it to 95. The contribution is finding that range." | 1:10 |
+
+**After:**
+
+> | 12A | Range wins; the climb buys speed | "At a quarter of the compute τ=0.1 already matches the paper's final result, 54 against 48, while the control is at 33 because it spends its first steps on levels nobody can learn yet. The control catches up by step 50, and by the end the range τ=0.1 found, 86 of its 95, is most of the win. The climb buys speed, not final quality." | 1:20 |
+
+## docs/speaker_notes.md: timing
+
+**Before:**
+
+> Total ≈ 9:50.
+
+**After:**
+
+> Total ≈ 10:00.
