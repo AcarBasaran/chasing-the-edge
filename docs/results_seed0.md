@@ -1,5 +1,9 @@
 # First results: five samplers, seed 0 (2026-11-20)
 
+> **Superseded.** The numbers to quote are the multi-seed ones in [results_seeds.md](results_seeds.md)
+> (e.g. τ=0.1 op 18–20: 27.7 ± 0.6, not 27; uniform: 20.0 ± 1.0, not 19). This file is kept for its
+> seed-0 figures and per-run detail.
+
 **ONE SEED PER ARM. Every number in this document is seed 0 only.** Seeds 1 and 2 and the Bandit are running;
 `eval/aggregate_seeds.py` turns them into mean ± spread and pooled paired tests as they land.
 

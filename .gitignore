@@ -229,3 +229,8 @@ outputs/
 # scratch symlinks (trailing-slash patterns above don't match symlinks)
 /outputs
 /checkpoints
+report/*.aux
+report/*.log
+report/*.bbl
+report/*.blg
+report/*.out

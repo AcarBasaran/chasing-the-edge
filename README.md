@@ -27,12 +27,13 @@ spent, nothing learned. So what matters is where the model is *right now*, and t
 
 | level (op) | p at step 0 | p at step 50 | p at step 100 |
 |---|---|---|---|
-| 13 (in band) | 0.01 | 0.44 | 0.46 |
-| 14 (in band) | 0 | 0.27 | 0.31 |
-| **15** (never trained) | 0 | 0.24 | **0.25** |
-| **16** (never trained) | 0 | 0.10 | **0.13** |
+| 13 (in band) | 0.01 | 0.43 | 0.46 |
+| 14 (in band) | 0 | 0.28 | 0.31 |
+| **15** (never trained) | 0 | 0.23 | **0.25** |
+| **16** (never trained) | 0 | 0.09 | **0.12** |
 
-(tracking set, 32 problems per level, 8 samples, T=1.0, every 10 steps; `outputs/runs/fixed_band_s0/edge_speed.csv`)
+(mean of the two fixed-band seeds; tracking set, 32 problems per level, 8 samples, T=1.0, every 10 steps;
+`outputs/runs/fixed_band_s{0,1}/edge_speed.csv`)
 
 By step 50, op 15–16 are where the model sometimes succeeds and sometimes fails, which is exactly the regime
 GRPO learns from. A fixed band keeps spending the budget on op 11–14 instead. A sampler that follows the edge
@@ -55,7 +56,7 @@ per level, strict process-verified scoring):
 | 15–20 | 0 (0 of 128 on every problem) | **0%** | 0% |
 
 Bold rows are the paper's fixed band. At step 0, op 13 and 14 almost never produce a gradient. **This does not
-last.** Training on op 11–12 generalises upward, and in the baseline run op 13 reaches 37% and op 14 29%
+last.** Training on op 11–12 generalises upward, and in the baseline run (seed 0) op 13 reaches 37% and op 14 29%
 informative groups by step 20 (measured on the groups GRPO trained; time series in
 [docs/gate1.md](docs/gate1.md), all levels in `results/informative_over_training.png`). The band's problem
 is not dead levels; it is that it stays put while the edge moves on.
@@ -88,17 +89,22 @@ Table: `results/base_model_p_by_level.csv`, `results/informative_fraction_by_lev
 * **The paper's released RL checkpoint also reproduces its Fig. 3**: hard-set pass@128 is 23.5% (paper ≈ 26%),
   and 48 of the 204 hard problems go from 0/128 to solvable.
 * **Gate 3 passed (2026-11-20): our fixed-band baseline reproduces the paper.** Strict reward, 100 steps, one
-  A40: hard pass@128 23.5% and 48 problems newly solved, the same as the released checkpoint. Every test set
-  is within 1 point ([docs/gate3.md](docs/gate3.md)).
-* **First results, five samplers, seed 0 only** ([docs/results_seed0.md](docs/results_seed0.md)). On op 18–20,
-  which Threshold τ=0.1 never trained on, it newly solves 27 of 102 problems, against 19 for uniform random
-  (which did train there, but 97% of those groups had zero gradient) and 6 for the fixed band. Over the whole
-  hard set, uniform random already gets 63% of τ=0.1's gain over the fixed band, so most of the improvement is
-  "train on harder problems at all"; adaptive timing is the smaller remaining margin. Seeds 1–2 and the bandit
-  are running.
+  A40: hard pass@128 23.5% and 48 problems newly solved in both seeds, the same as the released checkpoint.
+  Every test set is within 1 point ([docs/gate3.md](docs/gate3.md)).
+* **Results, all arms, 1–3 seeds each** ([docs/results_seeds.md](docs/results_seeds.md); mean ± SD over seeds).
+  Threshold τ=0.1 newly solves **95.0 ± 1.7** of the 204 hard problems (fixed band: 48). On op 18–20, which it
+  never trained on, it solves **27.7 ± 0.6 of 102**, against 20.0 ± 1.0 for uniform random (which did train
+  there, but 97% of those groups had zero gradient; sign test p = 0.002) and 6 for the fixed band. A control
+  that samples τ=0.1's range (op 11–17) uniformly from step 0 gets 86.3 ± 2.1, i.e. 81% of τ=0.1's gain: the
+  right range is most of the win, the schedule adds +8.7 problems (p = 0.017), and τ=0.1 is what found the
+  range. τ=0.5 (40% informative groups) learns nothing new; the bandit (40.7 ± 3.5) ends below the fixed band
+  ([docs/bandit_analysis.md](docs/bandit_analysis.md)). Cost: τ=0.1's easy pass@1 is 1.5 points lower,
+  lower than the fixed band's and the control's,
+  consistently across seeds; pass@128 is unchanged. The seed-0 write-up is kept in
+  [docs/results_seed0.md](docs/results_seed0.md) for its figures and per-run detail.
 * **Four samplers** (`samplers/core.py`): fixed band, uniform random, threshold, bandit. They plug into verl's
   existing curriculum hook, so the training code itself is unchanged. They are tested on a simulated model
-  first (`samplers/mock.py`, 36 unit tests).
+  first (`samplers/mock.py`; 46 unit tests across the repo).
   The simulation caught a real bug: the threshold sampler **oscillated** (60+ reversals in 500 steps), because
   neighbouring levels sit on opposite sides of any target band. Fix: it no longer moves into a level that
   was just measured on the wrong side. Result: 6 moves, 0 reversals, same learning gain.
@@ -107,7 +113,7 @@ Table: `results/base_model_p_by_level.csv`, `results/informative_fraction_by_lev
 * **Environment fixes** needed to get verl running on VALAR: flash-attn built from source (the prebuilt
   wheel needs a newer glibc), uvloop pinned to 0.21, numpy kept at 2.x, `ROCR_VISIBLE_DEVICES` unset in
   jobs, and Ray's temp files kept on node-local `/tmp`. All of this lives in the scripts under `slurm/`.
-* **Full-run setup**: one shared config for all six arms (`configs/rl_base.yaml`), so the arms differ only in
+* **Full-run setup**: one shared config for all seven arms (`configs/rl_base.yaml`), so the arms differ only in
   the sampler; a 4-GPU launcher; a 950k-problem training pool; and a tracking set that measures every
   level's success rate every 10 steps.
 
@@ -115,11 +121,10 @@ Table: `results/base_model_p_by_level.csv`, `results/informative_fraction_by_lev
 
 | when | what |
 |---|---|
-| running | Bandit (α = 0.3, m = 25), seeds 0–2; seeds 1–2 of the other five arms (`slurm/drain_queue.sh` submits them within the 50-job limit) |
-| as seeds land | `eval/aggregate_seeds.py`: mean ± spread per arm, op 18–20 breakdown, pooled paired tests |
-| **Dec 3** | **Progress presentation** ([docs/slides_outline.md](docs/slides_outline.md)) |
-| **Dec 6** | **Progress report** ([docs/progress_report.md](docs/progress_report.md)) |
-| January | see the report's "what's left" section |
+| done | All 17 runs for Dec 3 (seed counts in [docs/results_seeds.md](docs/results_seeds.md)); no new runs before Dec 3 |
+| **Dec 3** | **Progress presentation** ([docs/slides_outline.md](docs/slides_outline.md), [speaker script](docs/speaker_notes.md)) |
+| **Dec 6** | **Progress report** (LaTeX: [report/main.tex](report/main.tex); build with `report/build.sbatch`) |
+| January | τ = 0.15 / 0.2, range-finding then uniform, 200-step runs, bandit self-reward fix (report §6) |
 
 ## How to run
 
@@ -152,7 +157,7 @@ Everything runs through SLURM on the `ai` partition, never on the login node. He
    git clone https://github.com/AcarBasaran/chasing-the-edge && cd chasing-the-edge
    export EDGE_SCRATCH=/scratch/$USER/chasing-the-edge EDGE_REPO=$PWD UPSTREAM=$(dirname $PWD)/Interplay-LM-Reasoning
    sbatch --wait --cpus-per-task=32 --mem=160G --time=03:00:00 slurm/run_cpu.sbatch 'bash slurm/setup_env.sh'
-   sbatch --wait slurm/run_cpu.sbatch '$EDGE_PY -m pytest -q tests'      # 43 tests should pass
+   sbatch --wait slurm/run_cpu.sbatch '$EDGE_PY -m pytest -q tests'      # 46 tests should pass
    ```
    `slurm/setup_env.sh` chains the exact steps used on 2026-11-15. Each step ran individually, but the chained
    script has not been run end-to-end, since it refuses to overwrite an existing env. Known traps it handles:
@@ -166,7 +171,7 @@ Everything runs through SLURM on the `ai` partition, never on the login node. He
    |---|---|
    | `slurm/run_cpu.sbatch '<cmd>'` | any CPU-only command from the repo root (tests, tables, plots) |
    | `slurm/gate1_eval.sbatch` | pass@k evaluation with the paper's own scorer. Array tasks 0–18 = val op 2–20, 19–21 = easy/medium/hard. Set `MODEL=`, `TEMP=`, `RUN_DIR=` to evaluate any checkpoint |
-   | `slurm/rl_run.sbatch <arm> <seed>` | a full GRPO run (we use 1 GPU: `--gres=gpu:1 --cpus-per-task=12 --mem=40G`; same effective batch). Arms: `fixed_band uniform threshold_tau1 threshold_tau3 threshold_tau5 bandit` |
+   | `slurm/rl_run.sbatch <arm> <seed>` | a full GRPO run (we use 1 GPU: `--gres=gpu:1 --cpus-per-task=12 --mem=40G`; same effective batch). Arms: `fixed_band uniform uniform_11_17 threshold_tau1 threshold_tau3 threshold_tau5 bandit` |
    | `slurm/merge_ckpt.sh <run_id> <step>` | turn a training checkpoint into a model folder the evaluator can load |
    | `slurm/post_run.sh <run_id> <train_jobid>` | queue merge → pass@128 eval → analysis behind a training job (SLURM dependencies) |
    | `slurm/drain_queue.sh` | submit the runs listed in `$EDGE_SCRATCH/outputs/pending_runs.txt` as the job limit allows |
@@ -186,12 +191,14 @@ Everything runs through SLURM on the `ai` partition, never on the login node. He
 |---|---|
 | `samplers/` | the four samplers (`core.py`), the verl hook (`verl_adapter.py`), the simulated-model harness (`mock.py`), the pool builder |
 | `eval/` | pass@k, strict scoring, test-set builders, every table and plot script |
-| `configs/` | one YAML per run type (`rl_*.yaml` for the six arms) |
+| `configs/` | one YAML per run type (`rl_*.yaml` for the seven arms, plus the bandit m = 10 ablation) |
 | `slurm/` | job scripts and environment setup |
 | `data/` | test sets (`testsets/`) and the tracking set (`track32/`) |
 | `results/` | CSVs and plots: the numbers behind everything above |
-| `docs/` | gate reports |
+| `docs/` | gate reports, results across seeds, bandit analysis, slide text, speaker script, budget |
+| `report/` | the progress report in LaTeX (ACL style) |
 | `tests/` | unit tests |
 
-Reports: [Gate 1 report](docs/gate1.md) · [Gate 3 notes](docs/gate3.md) ·
+Reports: [results across seeds](docs/results_seeds.md) · [bandit analysis](docs/bandit_analysis.md) ·
+[Gate 1 report](docs/gate1.md) · [Gate 3 notes](docs/gate3.md) ·
 [overnight log](results/overnight.md) · project brief for Claude Code sessions: [CLAUDE.md](CLAUDE.md).

@@ -1,14 +1,29 @@
-# Dec 3 progress presentation: slide text (final draft, 2026-11-22)
+# Dec 3 progress presentation: slide text (final, 2026-11-22)
 
-**Spine: three samplers optimise three different objectives (gradient efficiency, learning speed, headroom),
-and headroom wins. The right range is most of the win, and the adaptive sampler is what found it.**
-13 slides, 10 minutes (≈ 45 s each; slides 1, 6 and 7 are fast).
+**Spine: three samplers aim at three different things (the most usable training signal, the fastest
+improvement, the most room to improve), and "most room to improve" wins. Training on the right range of
+difficulty is most of the win, and the adaptive sampler is what found that range.**
+13 slides, 10 minutes (≈ 45 s each; slides 1, 6 and 7 are fast). Spoken lines: docs/speaker_notes.md.
+
+**Audience.** A classmate who has not read the paper. Every term is defined on the slide where it first
+appears, and the same plain word is used for the same thing throughout:
+
+| we say on slides | means | avoid on slides |
+|---|---|---|
+| difficulty / level (op 2–20) | number of arithmetic operations in a problem | "edge of competence" without the gloss |
+| try / answer | one sampled solution (a "rollout") | rollout, completion |
+| success rate p | share of tries at a level that are fully right | – |
+| usable signal / "problem that teaches something" | a problem whose 6 tries are not all the same (nonzero GRPO gradient) | informative group, advantage |
+| newly solved | the starting model never solved it in 128 tries; the trained model solves it at least once | pass@128 > 0 |
+| reliability (pass@1) | share of single tries that are right | – |
+| target success rate τ | the threshold sampler's setting | – |
 
 **Numbers.** All from docs/results_seeds.md: mean ± SD over seeds (τ=0.1, uniform, control, bandit: 3 seeds;
-fixed band, τ=0.3: 2; τ=0.5: 1). Footer on every result slide: *"mean ± SD over seeds (n in table); pooled
-problem-level sign test; no multiple-comparison correction."* Before the deck, rerun `eval/aggregate_seeds.py`,
-`eval/untrained_levels.py`, `eval/compare_methods.py`, `eval/easy_regression.py` and `eval/bandit_q.py`, and
-regenerate every figure so the bars show the mean with seed dots.
+fixed band, τ=0.3: 2; τ=0.5: 1). Footer on every result slide: *"mean ± SD over training seeds (n in
+table); paired test over problems; not corrected for multiple comparisons."* Training-dynamics numbers that
+come from one run say "(seed 0)". Before the deck, rerun `eval/aggregate_seeds.py`, `eval/untrained_levels.py`,
+`eval/compare_methods.py`, `eval/easy_regression.py` and `eval/bandit_q.py`, and regenerate every figure so
+the bars show the mean with seed dots.
 
 **Versions.** Slides 12 and 13 come in two versions. **Version A ("the range is most of the win") is primary
 and is what the data say**: the control (uniform over op 11–17) gets 81–83% of τ=0.1's gain, and the remaining
@@ -22,182 +37,190 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 
 ### Slide 1. Chasing the Edge
 
-* Subtitle: *When GRPO picks its own training difficulty, what should it aim for?*
+* Subtitle: *When an RL-trained model picks its own training difficulty, what should it aim for?*
 * Eren Acar Basaran, Turan Berke Yakarer · COMP550 · Dec 3, 2026
 
-### Slide 2. The paper's finding
+### Slide 2. The paper we build on
 
-* **Headline:** RL teaches a small LM genuinely new problems only at its edge of competence.
-* Zhang, Neubig & Yue (2025): a 100M-parameter model, synthetic arithmetic problems whose difficulty is the
-  number of operations (op 2–20). GRPO creates new ability only when trained on problems the model sometimes
-  solves.
-* They pick that band once (op 11–14) and keep it fixed for the whole run.
-* **Figure:** one short op-5 problem and its "Define …" solution, with "difficulty = number of operations".
-* *Speaker note:* reward is process-verified: every reasoning step and the answer must be right.
+* **Headline:** RL teaches a small model new problems only when it trains on problems it sometimes solves.
+* Zhang, Neubig & Yue (2025) train a small (100M-parameter) language model from scratch on made-up
+  arithmetic word problems. **Difficulty = number of operations, from 2 to 20.** The model must write out
+  every step; an answer counts only if every step and the final number are right.
+* Then they fine-tune it with reinforcement learning (RL): the model tries each problem, gets a reward of 1
+  for a fully correct answer and 0 otherwise, and is pushed toward what worked.
+* Their finding: RL gives the model *new* ability (problems it could never solve before) only if training
+  uses problems at its **"edge"**: hard enough that it often fails, easy enough that it sometimes succeeds.
+* They pick that band once, **operations 11–14**, and keep it fixed for the whole run.
+* **Figure:** one short 5-operation problem and its step-by-step solution, labelled "difficulty = number
+  of operations".
 
-### Slide 3. Why the edge matters for GRPO
+### Slide 3. Why the edge matters
 
-* **Headline:** A group whose rollouts are all right or all wrong gives exactly zero gradient.
-* Informative fraction of a group of G = 6 rollouts at success rate p: **1 − pᴳ − (1 − p)ᴳ**.
-* So where the model is *right now* decides what it can learn from.
-* **Figure:** `results/informative_fraction_by_level.png`, labelled **"base model, step 0"**: op 11 and 12
-  informative, op 13–14 almost dead, op 15–20 exactly zero.
+* **Headline:** If all six tries agree, the model learns nothing from that problem.
+* The RL method (GRPO) answers each problem **6 times** and learns from the *difference* between its right
+  and wrong answers. All 6 right, or all 6 wrong: no difference, **zero learning signal**, compute wasted.
+* With success rate p, the share of problems that teach something is **1 − p⁶ − (1 − p)⁶**: near 0 when
+  the model always fails or always succeeds, highest in between.
+* So what the model can learn from depends on where it is **right now**.
+* **Figure:** `results/informative_fraction_by_level.png`, titled **"starting model: share of problems that
+  teach something, by difficulty"**: operations 11–12 useful, 13–14 almost nothing, 15–20 exactly zero.
 
-### Slide 4. The edge moves; the band does not
+### Slide 4. The edge moves; the fixed band does not
 
-* **Headline:** Training on op 11–14 makes op 15–17 learnable, but the fixed band never goes there.
-* In the fixed-band run, op 15 goes from never solved to 27% informative groups by step 50, op 16 to 17%,
-  op 17 to 7%, without ever being trained on.
+* **Headline:** Training on 11–14 makes 15–17 learnable, but the fixed band never goes there.
+* In the paper's fixed-band run, levels it *never trains on* start to teach something (seed 0, step 50):
+  operation 15 goes from never solved to **27%** of problems teaching something, 16 to **15%**, 17 to **6%**.
 * **Figure:** `results/informative_over_training.png`, left panel.
-* *Speaker note:* this is the gap an adaptive sampler is meant to close.
+* *Speaker note:* a sampler that follows the edge could move up to these levels. That is the idea.
 
-## Act 2: three objectives
+## Act 2: three things a sampler could aim for
 
 ### Slide 5. Three ways to chase the edge
 
-* **Headline:** Each adaptive sampler optimises something different.
+* **Headline:** We built samplers that pick the difficulty of every training batch, each aiming at
+  something different.
 * Three columns:
 
-  | gradient efficiency | learning speed | headroom |
+  | most usable signal | fastest improvement | most room to improve |
   |---|---|---|
-  | **threshold τ=0.5**: stay at the level where p ≈ 0.5 | **bandit**: train the level whose p rose most since the last probe | **threshold τ=0.1**: move up as soon as p > 0.2 |
-  | maximises informative groups | maximises measured improvement | trains where the model mostly fails |
-  | risk: nothing left to learn there | risk: chases its own improvement | risk: too few informative groups |
+  | **threshold τ=0.5**: stay at the level the model solves about half the time | **bandit**: keep training the level whose success rate rose most recently | **threshold τ=0.1**: move up as soon as the model solves more than 20% |
+  | most problems teach something | chases measured progress | trains where the model mostly fails |
+  | risk: nothing left to learn there | risk: rewards its own training | risk: few problems teach something |
 
-* Controls: **fixed band** op 11–14 (the paper), **uniform** over op 2–20, **uniform over op 11–17** (slide 12).
-* Footnote: same budget for every arm, 100 steps × 1,024 prompts × 6 rollouts; probe rollouts count.
+* τ = the **target success rate**. The threshold sampler trains one level at a time and moves up when the
+  success rate there passes τ + 0.1 (for τ=0.1: 0.2).
+* Comparisons: **fixed band** 11–14 (the paper), **uniform** over all levels 2–20, and **uniform over
+  11–17** (slide 12).
+* Footnote: every arm gets the same compute: 100 training steps × 1,024 problems × 6 tries. The samplers'
+  own measurements count against it.
 
 ### Slide 6. Our baseline reproduces the paper
 
-* **Headline:** Our fixed band matches the released checkpoint within 1 point on every test set.
-* Table: easy / medium / hard pass@1 and pass@128, ours vs released vs paper Fig. 3 (docs/gate3.md).
-  Hard newly solved: **48 of 204 for both.**
-* *Speaker note:* this is why the comparisons that follow are against a faithful baseline.
+* **Headline:** Our version of the paper's method matches their released model within 1 point everywhere.
+* Table: easy / medium / hard test sets, reliability (pass@1) and solved-at-least-once (pass@128), ours vs
+  released vs the paper's figure (docs/gate3.md). Hard problems newly solved: **48 of 204 for both**.
+* *Speaker note:* every comparison that follows is against a faithful baseline.
 
-## Act 3: what each objective did
+## Act 3: what each sampler did
 
 ### Slide 7. Where each sampler went
 
-* **Headline:** τ=0.5 never leaves op 11, the bandit locks onto op 12–13, τ=0.3 settles on op 14 (the
-  paper's band, found on its own), τ=0.1 climbs to op 17, in every seed.
-* **Figure:** `results/sampler_levels.png` (τ=0.1, τ=0.3, τ=0.5 and bandit_s0 panels).
-* *Speaker note:* τ=0.1 reaches op 15 at step 16 and op 17 at step 45–54 in all three seeds.
+* **Headline:** τ=0.5 never leaves level 11. The bandit gets stuck at 12–14. τ=0.3 climbs through the
+  paper's band and stops at its top (14). τ=0.1 climbs to 17. Same in every seed.
+* **Figure:** `results/sampler_levels.png` (τ=0.1, τ=0.3, τ=0.5 and bandit seed 0), y-axis "difficulty
+  being trained", x-axis "training step".
+* *Speaker note:* τ=0.1 reaches level 15 at step 16 and level 17 at step 45–54 in all three seeds.
 
-### Slide 8. More informative gradient did not mean more learning   *(new)*
+### Slide 8. More learning signal did not mean more learning
 
-* The whole slide is one line with two pairs of numbers, large:
+* The whole slide is two lines of large type:
 
-  > **τ=0.5: 40.1% of groups informative → 0 new hard problems.**
-  > **τ=0.1: 24.7% of groups informative → 95 new hard problems.**
+  > **τ=0.5: 40% of problems teach something → 0 new hard problems solved.**
+  > **τ=0.1: 25% of problems teach something → 95 new hard problems solved.**
 
-* Small print underneath: *share of GRPO groups with a nonzero gradient over the whole run; new = hard
-  problems (op 15–20, 204) the base model never solved and the trained model solves at least once in 128.
-  τ=0.1: 3 seeds; τ=0.5: 1 seed.*
+* Small print: *share of training problems whose 6 tries were not all the same, over the whole run; new =
+  hard test problems (204, levels 15–20) the starting model never solved in 128 tries and the trained model
+  solves at least once. τ=0.1: 3 seeds; τ=0.5: 1 seed.*
 * No figure.
-* *Speaker note:* the arm with the most usable gradient learns nothing new; the arm with the least of any
-  adaptive arm learns the most. The next slide says why.
+* *Speaker note:* the arm with the most usable signal learns nothing new. The next slide says why.
 
 ### Slide 9. Why: where a level learns fastest
 
-* **Headline:** A level improves fastest at p ≈ 0.10–0.21, and its success rate tops out at p ≈ 0.35–0.58.
-* τ=0.1's target band [0.05, 0.2] contains the steepest point: **it targets where learning is fastest**. That
-  makes it the best of the three τ we ran and the one the curve predicts.
-* τ=0.5's band [0.4, 0.6] is the *ceiling* (training reward, T = 1.0). It maximises informative groups by
-  sitting where nothing is left to learn, and since op 11 tops out at 0.57 its move-up bound (0.6) is never
-  reached.
-* This corrects our own proposal, which assumed p = 0.5 is the sweet spot.
-* **Figure:** `results/scurve.png` (right panel: improvement vs p, τ=0.1 and τ=0.5 bands shaded; left panel
-  as backup).
-* *Speaker note:* τ between 0.1 and 0.3 is untested; τ = 0.15 and 0.2 are January's test of the prediction.
+* **Headline:** A level improves fastest when the model solves it 10–20% of the time, and stops improving
+  at about 50%.
+* τ=0.1 trains each level exactly in that fast stretch, then moves on.
+* τ=0.5 trains where the level has already stopped improving. The model's success rate at level 11 levels
+  off at 0.57, just below τ=0.5's move-up point (0.6), so it never moves.
+* This corrects our own proposal, which assumed "solved half the time" is the sweet spot.
+* **Figure:** `results/scurve.png`, right panel: "how fast a level improves" against "current success
+  rate", with τ=0.1's and τ=0.5's target ranges shaded.
+* *Speaker note:* targets between 0.1 and 0.3 are untested; 0.15 and 0.2 are January's test of this.
 
-### Slide 10. Learning speed rewards itself
+### Slide 10. Chasing improvement rewards itself
 
-* **Headline:** The bandit's reward is improvement, and the level it trains improves because it is trained.
-* Its greedy choice generates its own reward, keeps 90% of every batch, and stays on op 12–14.
-* op 15 became learnable anyway (p = 0.31 by step 50) and reached second place in value, but under an argmax
-  second place gets nothing: after step 25, op 15+ got only the ε floor (3.2% of prompts) in all 3 seeds.
-* Faster probes do not fix it (m = 10: locked on sooner, onto op 12). Result: **40.7 ± 3.5** new hard problems,
-  below the fixed band (48).
-* **Figure:** `results/bandit_q.png` (top: value per level, op 15 orange reaches second, never first;
-  bottom: batch share, greedy level 90%, op 15+ flat at the ε floor).
-* *Speaker note:* probe noise (SE ≈ 0.09 against value margins of ≈ 0.01) makes *which* of op 12–15 wins
-  partly chance; the trained level's head start is not.
+* **Headline:** The bandit rewards a level for improving, and the level it trains improves *because* it
+  trains it.
+* So its first choice keeps 90% of every batch and stays at level 12–14 for the whole run.
+* Level 15 became learnable anyway (success rate 0.10–0.31 by step 50, depending on the seed) and came a
+  close second, but the bandit always takes the top choice: after step 25, levels 15 and up got only the
+  3% of problems the bandit picks at random, in all 3 seeds.
+* Measuring progress more often does not help (every 10 steps instead of 25: it got stuck sooner, on an
+  easier level). Result: **40.7 ± 3.5** new hard problems, *below* the fixed band (48).
+* **Figure:** `results/bandit_q.png` (top: each level's score, level 15 in orange comes second and never
+  first; bottom: share of each batch).
 
-### Slide 11. Headroom wins
+### Slide 11. Room to improve wins
 
-* **Headline:** On op 18–20, levels τ=0.1 never trained on, it newly solves **27.7 ± 0.6 of 102** problems.
-* Uniform over op 2–20, which *did* train there: 20.0 ± 1.0. Fixed band: 6. Bandit: 3.3 ± 1.5. τ=0.5: 0.
-  The base model: 0.
-* τ=0.1 vs uniform, paired by problem across 3 seeds each: better on 15 problems, worse on 2 (p = 0.002);
-  +7.7 per seed [95% CI +3.7, +12.3]. Same direction in every seed.
+* **Headline:** On the three hardest levels (18–20), which τ=0.1 never trained on, it newly solves
+  **27.7 ± 0.6 of 102** problems.
+* Uniform over all levels, which *did* train on 18–20: 20.0 ± 1.0. Fixed band: 6. Bandit: 3.3. τ=0.5: 0.
+  The starting model: 0.
+* Problem by problem, over 3 seeds each: τ=0.1 solves 15 problems more often than uniform, uniform 2 more
+  often than τ=0.1 (p = 0.002). Same direction in every seed.
 * **Figure:** `results/hard_by_level.png`, both panels.
-* *Speaker note:* uniform spent 16% of its prompts on op 18–20, and 97% of those groups had zero gradient.
-  Exposure does not teach a level the model cannot yet solve.
+* *Speaker note:* uniform spent 16% of its problems on levels 18–20, and 97% of them taught nothing: all 6
+  tries failed. Seeing a level you cannot solve at all teaches nothing.
 
 ## Act 4: what actually produced the gain
 
 ### Slide 12A. The right range is most of the win, and τ=0.1 found it   **(primary)**
 
-* **Headline:** Sampling τ=0.1's range uniformly from step 0 gets most of τ=0.1's gain. The adaptive
-  sampler's contribution is that it *found* that range.
-* **The control.** Uniform over op 11–17, the levels τ=0.1 visited, chosen after seeing where τ=0.1 went.
-  Same budget, no schedule.
-* The numbers, as one stacked bar per test set ("of τ=0.1's gain over the fixed band"):
+* **Headline:** Training uniformly on the levels τ=0.1 visited gets most of its gain. The adaptive
+  sampler's contribution is that it *found* those levels.
+* **The control.** Uniform over levels 11–17 (where τ=0.1 went) from the first step: same levels, same
+  compute, no step-by-step climb. We chose this range after seeing where τ=0.1 went.
+* One stacked bar per test set, "share of τ=0.1's gain over the fixed band":
 
-  | | whole hard set (+47 problems) | op 18–20 (+21.7) |
+  | | whole hard set (+47 problems) | levels 18–20 (+21.7) |
   |---|---|---|
-  | harder problems at all (uniform op 2–20) | 64% | 65% |
-  | the right range (op 11–17) | 18% | 18% |
-  | the schedule (τ=0.1 vs the same range) | 18% | 17% |
+  | training on harder problems at all (uniform 2–20) | 64% | 65% |
+  | the right range (11–17) | 18% | 18% |
+  | the climb (τ=0.1 vs the same range) | 18% | 17% |
 
-* **The schedule adds a small margin:** +8.7 hard problems per seed (17 vs 5 problems, p = 0.017); on op
-  18–20, +3.7 (8 vs 2, p = 0.11, not significant).
+* **The climb adds a small margin:** +8.7 hard problems per seed (better on 17 problems, worse on 5,
+  p = 0.017); on levels 18–20, +3.7 (8 vs 2, p = 0.11, not significant).
 * **Bottom line, in the slide's largest type:**
-  > The paper's hand-picked band gets **48**. The range τ=0.1 found on its own gets **86**. With τ=0.1's schedule, **95**.
-* Small print: *We would not have tried op 11–17 without τ=0.1. It is the paper's band plus three levels the
-  base model cannot solve at all.*
-* **Figure:** the stacked bars (new; numbers in docs/results_seeds.md §3), or `results/hard_by_level.png` with
-  the control added.
-* *Speaker note:* say it straight. The schedule is not where most of the gain comes from. Choosing *which*
-  levels to train on is, and the paper's choice (op 11–14) was too low. A sampler that tracks the edge is a
-  way to find the right range without a sweep. That is the contribution.
+  > The paper's hand-picked band: **48**. The range τ=0.1 found on its own: **86**. With τ=0.1's climb: **95**.
+* Small print: *We would not have tried 11–17 without τ=0.1: it is the paper's band plus three levels the
+  starting model cannot solve at all.*
+* **Figure:** the stacked bars (new; numbers in docs/results_seeds.md §3).
 
 ### Slide 13A. What it costs, and what is next   **(primary)**
 
-* **Headline:** τ=0.1 trades a little reliability on easy problems for the most new ability on hard ones.
-* **Cost, consistent across seeds:** easy pass@1 83.9 ± 0.2 vs 85.3 for the control and 85.5 for the base
-  model; medium pass@1 46.7 vs 49.1. Every one of 9 seed pairs against the control is lower. pass@128 is
-  unchanged: τ=0.1 is less reliable, not less able.
-* **Practical reading:** if you know the right range, sample it uniformly: 81% of the gain, no reliability
-  cost. If you do not, τ=0.1 finds it, and its schedule adds a small margin on the hardest problems.
+* **Headline:** τ=0.1 gives up a little reliability on easy problems for the most new ability on hard ones.
+* **Cost, same in every seed:** easy problems solved per try 83.9% vs 85.3% for the control and 85.5% for
+  the starting model; medium 46.7% vs 49.1%. But the share of easy problems solved at least once is
+  unchanged: τ=0.1 is less *reliable*, not less *able*.
+* **Practical reading:** if you know the right range, sample it uniformly: 81% of the gain, no cost. If you
+  don't, τ=0.1 finds it, and its climb adds a small margin on the hardest problems.
 * **Next (January):**
-  * τ = 0.15 and 0.2: do arms that train inside the predicted peak (p ≈ 0.10–0.21) do better? Needs a smaller δ.
-  * Range-finding as a method: run τ=0.1 briefly, then train uniformly on the range it found.
-  * 200-step runs: does the fixed band catch up, or does the gap widen?
-  * Fix the bandit's self-reward loop.
-* **Figure:** none, or `results/method_comparison.png` (hard column) as a thumbnail.
+  * Targets 0.15 and 0.2: train right inside the fast-improvement stretch.
+  * Find the range with τ=0.1 briefly, then train uniformly on it.
+  * 200-step runs: does the fixed band catch up?
+  * Fix the bandit so it can't reward itself.
 
-### Slide 12B. The schedule matters: τ=0.1 beats its own range sampled uniformly   *(backup)*
+### Slide 12B. The climb matters: τ=0.1 beats its own range sampled uniformly   *(backup)*
 
-* **Headline:** τ=0.1 newly solves more hard problems than uniform sampling over the same levels (op 11–17).
-* Whole hard set: **95.0 ± 1.7 vs 86.3 ± 2.1**; paired by problem, better on 17, worse on 5 (p = 0.017),
+* **Headline:** τ=0.1 newly solves more hard problems than uniform sampling over the same levels (11–17).
+* Whole hard set: **95.0 ± 1.7 vs 86.3 ± 2.1**; problem by problem, better on 17, worse on 5 (p = 0.017),
   +8.7 per seed [95% CI +3.3, +14.3]. Same direction in every seed.
-* Where the gap is: op 15 (29.0 vs 26.3) and op 16 (20.0 vs 17.7), the levels τ=0.1 trained *while they
-  were at the edge*, and 1–3 problems per level beyond. At op 17, where both trained heavily, they are
-  equal (18.3 vs 18.3).
-* τ=0.1 put 2.5× more informative gradient on op 15–17 than the control (20,642 vs 8,268 groups).
-* **Caveat on the slide itself:** on op 18–20 alone the gap is +3.7 (8 vs 2 problems, p = 0.11), not
+* Where the gap is: levels 15 (29.0 vs 26.3) and 16 (20.0 vs 17.7), the levels τ=0.1 trained *while they
+  were at the edge*, plus 1–3 problems per level beyond. At level 17, where both trained heavily, they tie
+  (18.3 each).
+* τ=0.1 put 2.5× more useful training signal on levels 15–17 than the control (20,642 vs 8,268 problems
+  that taught something).
+* **Caveat on the slide itself:** on levels 18–20 alone the gap is +3.7 (8 vs 2 problems, p = 0.11), not
   significant. Most of τ=0.1's gain over the fixed band (81%) comes from the range.
-* **Figure:** per-level bars, τ=0.1 vs control, op 15–20.
+* **Figure:** per-level bars, τ=0.1 vs control, levels 15–20.
 
 ### Slide 13B. What it costs, and what is next   *(backup)*
 
-* **Headline:** The schedule's extra ability costs a little reliability on easy problems.
-* Cost: easy pass@1 83.9 vs 85.3 (control) and 85.5 (base); medium 46.7 vs 49.1. Consistent across seeds.
-  pass@128 unchanged.
-* The control has no such cost, because 57% of its batch stays on op 11–14.
-* **Next:** τ = 0.15 / 0.2 (train inside the peak), a schedule that keeps a share of op 11–14 to remove the
-  cost, 200-step runs, the bandit fix.
+* **Headline:** The climb's extra ability costs a little reliability on easy problems.
+* Cost: easy 83.9% vs 85.3% (control) and 85.5% (starting model); medium 46.7% vs 49.1%. Same in every seed.
+  Solved-at-least-once unchanged.
+* The control has no such cost, because 57% of its training stays on levels 11–14.
+* **Next:** targets 0.15 / 0.2, a climb that keeps some 11–14 problems in every batch, 200-step runs, the
+  bandit fix.
 
 ---
 
@@ -207,19 +230,20 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 |---|---|
 | Easy/medium reliability: seed by seed | table from docs/results_seeds.md §4 (per-seed pass@1, paired CIs, 6/6 and 9/9 seed pairs) |
 | All arms, all test sets | `results/method_comparison.png`; docs/results_seeds.md §1 |
-| Paired tests, full table | docs/results_seeds.md §2 (both op 18–20 and op 15–20) |
-| Steepest point per level and the fixed band's S-curves | `results/scurve.png` (left panel), docs/bandit_analysis.md §6 |
+| Paired tests, full table | docs/results_seeds.md §2 (both levels 18–20 and 15–20) |
+| Steepest point per level and the fixed band's learning curves | `results/scurve.png` (left panel), docs/bandit_analysis.md §6 |
 | Bandit fixes for January | docs/bandit_analysis.md §7 |
-| Bandit: probe noise vs value margins | `results/bandit_q.csv`; docs/bandit_analysis.md §2 |
-| Per-level informative share during training | `results/informative_over_training.png` (right panel) |
-| Within-level bimodality | `results/per_problem_p_hist.png` |
+| Bandit: measurement noise vs score margins | `results/bandit_q.csv`; docs/bandit_analysis.md §2 |
+| Per-level share of problems that teach something, during training | `results/informative_over_training.png` (right panel) |
+| Problems within a level are mostly always or never solved | `results/per_problem_p_hist.png` |
 | Strict vs answer-only reward on the released checkpoint | docs/gate3.md |
 | The step-0 motivation and why it did not last | docs/gate1.md time series |
 
 ## Figures to (re)make before the deck
 
 **Projector check (2026-11-22).** Rule: text ≥ 14 pt once the figure is scaled to slide width (13.3 in), i.e. a
-figure W inches wide needs fonts ≥ 14 × W / 13.3 pt.
+figure W inches wide needs fonts ≥ 14 × W / 13.3 pt. When regenerating, relabel axes in the slide vocabulary
+above ("difficulty (operations)", "share of problems that teach something", "solved at least once").
 
 | figure | slide | status | fix |
 |---|---|---|---|
@@ -234,9 +258,6 @@ figure W inches wide needs fonts ≥ 14 × W / 13.3 pt.
 | decomposition bar (12A), per-level bars (12B) | 12 | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
 
 * Slide 5: three-column graphic (no data).
-* Slide 7: `eval/plot_sampler_levels.py` with τ=0.1, τ=0.3, τ=0.5 and bandit_s0 only.
 * Slide 8: no figure; two lines of large type.
-* Slide 11: `results/hard_by_level.png` regenerated with seed dots.
 * Slide 12A: new stacked bar (decomposition), from docs/results_seeds.md §3. Slide 12B: per-level bars
   τ=0.1 vs control from `results/seeds_hard_levels.csv`.
-* Slide 13: optional `results/method_comparison.png` thumbnail.
