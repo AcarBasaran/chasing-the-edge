@@ -179,21 +179,7 @@ are against this baseline.
 \begin{table*}[t]
 \centering
 \small
-\begin{tabular}{lcccccc}
-\toprule
-& & \multicolumn{3}{c}{hard set, op 15--20} & op 18--20 & informative \\
-\cmidrule(lr){3-5}
-arm & seeds & pass@1 & pass@128 & \textbf{new} (/204) & \textbf{new} (/102) & groups \\
-\midrule
-threshold \tauone\ (headroom)        & 3 & $\mathbf{22.8\pm0.2}$ & $\mathbf{46.6\pm0.8}$ & $\mathbf{95.0\pm1.7}$ & $\mathbf{27.7\pm0.6}$ & 24.7\% \\
-control: uniform op 11--17           & 3 & $20.4\pm0.2$ & $42.3\pm1.0$ & $86.3\pm2.1$ & $24.0\pm2.0$ & 28.6\% \\
-uniform op 2--20                     & 3 & $16.8\pm0.5$ & $38.2\pm0.5$ & $78.0\pm1.0$ & $20.0\pm1.0$ & 18.8\% \\
-fixed band op 11--14 (paper)         & 2 & $9.9\pm0.4$  & $23.5\pm0.0$ & $48.0\pm0.0$ & $6.0\pm0.0$  & 35.4\% \\
-threshold \tauthree                  & 2 & $10.5\pm1.2$ & $23.8\pm1.7$ & $48.5\pm3.5$ & $4.0\pm1.4$  & 34.0\% \\
-bandit, $m=25$ (learning speed)      & 3 & $8.5\pm1.3$  & $19.9\pm1.7$ & $40.7\pm3.5$ & $3.3\pm1.5$  & 29.1\% \\
-threshold \taufive\ (gradient eff.)  & 1 & 0.0 & 0.0 & 0 & 0 & 40.1\% \\
-\bottomrule
-\end{tabular}
+\input{tables/main_results.tex}
 \caption{Main results (mean $\pm$ SD over seeds). ``New'' = newly solved: solved at least once in 128 samples
 by the trained model and never by the base model. ``Informative groups'' = share of training groups with a
 nonzero gradient over the run. Only uniform op 2--20 (16k groups per run) and, through $\varepsilon$-exploration, the bandit (5k) trained on op 18--20.}
@@ -236,15 +222,7 @@ splits \tauone's gain over the fixed band into three steps.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lcc}
-\toprule
-step & hard ($+47.0$) & op 18--20 ($+21.7$) \\
-\midrule
-harder problems\textsuperscript{a} & $+30.0$ (64\%) & $+14.0$ (65\%) \\
-right range\textsuperscript{b}     & $+8.3$ (18\%)  & $+4.0$ (18\%) \\
-schedule\textsuperscript{c}        & $+8.7$ (18\%)  & $+3.7$ (17\%) \\
-\bottomrule
-\end{tabular}
+\input{tables/decomposition.tex}
 \caption{Decomposition of \tauone's gain over the fixed band in newly solved problems per seed.
 \textsuperscript{a}uniform op 2--20 $-$ fixed band; \textsuperscript{b}control op 11--17 $-$ uniform op
 2--20; \textsuperscript{c}\tauone\ $-$ control.}
