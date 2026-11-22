@@ -54,6 +54,8 @@ for itself and it never moves on.
    move-up trigger τ + δ and stops at the first level whose success rate stays below it. Ceilings measured in
    other arms predict all three final levels. It also says how adaptive τ=0.1 really is (the first half of the
    run), and it is the hypothesis for the January τ values.
+7. **Success rate alone does not predict learning speed**: at the same p, harder levels learn 10–40× more
+   slowly, which matters for any curriculum rule that targets a success rate.
 
 ## 1. Problem: background and question
 
@@ -452,8 +454,28 @@ the way** (§6.3). The stall law is the hypothesis for the January τ = 0.15 and
 
 When the gain over the control arose is not settled yet. In the tracking set (32 problems per level, T = 1),
 τ=0.1's lead on op 15–16 opens while it climbs (steps 20–50) and closes by step 80–100. Its lead on op 17 grows
-during the stall. On op 18–20 it leads from step 30 on by a small, roughly steady margin. Evaluating the
-step-25/50/75 checkpoints on the hard set will answer this with the headline metric.
+during the stall. On op 18–20 it leads from step 30 on by a small, roughly steady margin.
+
+The step-25/50/75 checkpoints on the hard set (newly solved, mean of 3 seeds, pooled paired test) answer it
+with the headline metric. τ=0.1 led by +21 problems at step 25 while climbing (54 vs 33, p < 10⁻⁶). The control
+caught up by step 50 (79 vs 75, p = 0.11; op 18–20 tied, 16.7 vs 16.3). The lead re-formed during the stall at op
+17: +8 at step 75 (op 18–20: +6, p = 0.023) and +8.7 at step 100. **The final advantage over the control comes
+from concentrated training on op 17 late in the run, not from the climb**, whose lead had disappeared by step
+50. That late concentration is not itself adaptive.
+
+### 6.9 Success rate alone does not predict learning speed
+
+At the same success rate, harder levels learn more slowly. τ=0.1 trained op 13 to op 17 in the same band of
+success rates, p ≈ 0.10–0.21, which is where op 13–15 rise fastest. Yet the rise per 10 steps fell from
+0.31–0.43 at op 13–14 to 0.12–0.17 at op 15, 0.03–0.05 at op 16 and about 0.01 at op 17: 10–40× slower at the
+same p, two or three levels higher. The steepest-point estimate of §6.5 holds for the levels it was measured
+on and does not transfer upward.
+
+This bears on any curriculum rule that targets a success rate, including our threshold rule and the
+difficulty filters in §2 that keep problems of intermediate accuracy. Such a rule assumes that a given p
+means a given amount of learning. Here a target p chooses the level, but how much that level teaches also
+depends on the level itself. The same effect explains the stall in §6.8: as levels got harder, pushing p from
+about 0.1 to the trigger took longer, from a few steps at op 13–14 to more than the remaining run at op 17.
 
 ## 7. Correcting our own motivation
 
@@ -483,20 +505,21 @@ matters.
 * **Adaptive mainly early.** τ=0.1 changes level only in its first 45–54 steps, and τ=0.3 in its first
   23–25; both then train one level to the end. Whether τ=0.1's stall at op 17 is a ceiling or a climb too
   slow for 100 steps is open (§6.8).
+* **Success rate is not learning speed.** Our rules, and the S-curve analysis behind τ=0.1, read the
+  success rate only. At the same p, op 16–17 learned 10–40× more slowly than op 13–14 (§6.9), so a target
+  success rate does not fix the learning rate, and the steepest-point estimate does not transfer to harder
+  levels.
 * **One model and one task family.** All results are for the paper's 100M-parameter model on synthetic
   arithmetic graphs.
 
 ## 9. Plan for the final report (January)
 
 1. **τ = 0.15 and τ = 0.2, as a test of the stall law (§6.8).** Hypothesis: the trigger h = τ + δ, not τ, sets
-   the final level. Ceilings measured in other arms predict h = 0.25 → op 16 and h = 0.30 → op 15–16, so
-   with δ = 0.1 both arms should stop below op 17 and, if the range drives the gain, newly solve fewer hard
-   problems than τ=0.1. With δ = 0.05, τ = 0.15 has τ=0.1's trigger (0.20) and should repeat its path; a
-   trigger below 0.2 is the arm predicted to climb past op 17. Also test whether arms that train inside the
-   predicted peak (p ≈ 0.10–0.21) beat τ=0.1.
-   With δ = 0.1 their move-up bounds (0.25, 0.30) lie above the peak, so these arms need δ = 0.05 (bands
-   [0.10, 0.20] and [0.15, 0.25], checked first in the simulator for oscillation) or a rule that targets the
-   band directly. About 38 GPU-hours for two seeds each.
+   the final level. We use **δ = 0.1**, so the triggers are 0.25 and 0.30, genuinely different from τ=0.1's
+   0.20 (bands [0.075, 0.25] and [0.10, 0.30]). Ceilings measured in other arms predict that τ = 0.15 stops at
+   op 16 and τ = 0.2 at op 15–16. Both would then train a narrower range than τ=0.1 and, if the range drives
+   the gain, newly solve fewer hard problems. The law is refuted if either climbs past its predicted level.
+   About 38 GPU-hours for two seeds each.
 2. **Range-finding as a method.** Run τ=0.1 for a short burn-in, then train uniformly on the range it found.
    If this matches τ=0.1, it combines the range-finding with the control's lack of reliability cost.
 3. **200-step runs** of τ=0.1, the control and the fixed band. Prediction: if op 17 keeps rising at its
@@ -507,7 +530,11 @@ matters.
    an arm receives from its own training.
 5. **Reliability cost.** Test whether keeping a small share of op 11–14 in τ=0.1's batches removes the easy
    and medium cost without losing the hard-set gain.
-6. **Per-problem selection** within a level: problems are mostly always or never solved, so choosing problems
+6. **Learning speed at equal success rate.** Measure the rise per step against p for every level from the
+   existing logs and the January runs. If the slowdown with level holds, test a rule that also reads the
+   measured rise (without the bandit's self-reward, item 4), e.g. move up when the current level's rise has
+   flattened rather than when p crosses a fixed trigger.
+7. **Per-problem selection** within a level: problems are mostly always or never solved, so choosing problems
    by their own success rate could raise the informative share well above 40%.
 
 ## 10. Engineering and compute

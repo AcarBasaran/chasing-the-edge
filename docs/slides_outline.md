@@ -111,8 +111,9 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * **Each threshold sampler stops at the first level it cannot push past its move-up point (τ + 0.1):**
   level 11 for τ=0.5 (levels off at 0.59, move-up point 0.6), 14 for τ=0.3 (0.37 vs 0.4), 17 for τ=0.1
   (0.17 vs 0.2). τ=0.1 spends the second half of the run (46–55% of its steps) at level 17.
-* **Figure:** `results/sampler_levels.png` (τ=0.1, τ=0.3, τ=0.5 and bandit seed 0), y-axis "difficulty
-  being trained", x-axis "training step".
+* **Figure:** `results/staircase_slide.png` (`eval/plot_staircase.py`): level trained per step for τ=0.1,
+  τ=0.3, τ=0.5 and the bandit (seed 0), with τ=0.1's stretch on level 17 shaded; beside it, τ=0.1's steps per
+  level, mean of 3 seeds (level 16: 27, level 17: 50).
 * *Speaker note:* τ=0.1 reaches level 15 at step 16 and level 17 at step 45–54 in all three seeds, then
   stays. It adapts while levels are learnable, then stops.
 
@@ -135,6 +136,8 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
   improving at about 50%.
 * τ=0.1 trains levels 13–15 in that fast stretch and moves on. At 16–17 the success rate sits in the same
   range but rises 10–40× more slowly, and at 17 it never reaches the move-up point.
+* **So success rate alone does not tell you how fast a level will learn**: harder levels learn more slowly
+  at the same rate. That matters for any rule that aims at a target success rate, ours included.
 * τ=0.5 trains where the level has already stopped improving. The model's success rate at level 11 levels
   off at 0.57, just below τ=0.5's move-up point (0.6), so it never moves.
 * This corrects our own proposal, which assumed "solved half the time" is the sweet spot.
@@ -256,7 +259,7 @@ above ("difficulty (operations)", "share of problems that teach something", "sol
 | figure | slide | status | fix |
 |---|---|---|---|
 | `hard_by_level.png` | 11 | **OK** (regenerated: 13 in, 10–12 pt, labels to one decimal, n per arm) | – |
-| `sampler_levels.png` | 7 | **illegible**: all 16 runs side by side (61 in wide), 6 pt | rerun `eval/plot_sampler_levels.py` with 4 runs (τ=0.1, τ=0.3, τ=0.5 s0, bandit_s0) and fonts ≥ 12 |
+| `staircase_slide.png` | 7 | **OK** (new, 13.3 in, 14–18 pt; replaces `sampler_levels.png`, which stays illegible and backup-only) | – |
 | `bandit_q.png` | 10 | **too small** (4 columns, 17 in, 7 pt ≈ 5.6 pt on screen); "greedy opNN" notes overlap the Q steps; end labels op13/op14 crowd | one column (bandit_s0) + optionally m10; fonts ≥ 12; greedy notes above the plot area |
 | `scurve.png` | 9 | **small** (12 in, 8–9 pt ≈ 9.5 pt); τ-band labels light grey on tint; legend sits on the op13/14 traces | right panel alone at slide size, fonts ≥ 12, legend outside, band labels in ink |
 | `informative_over_training.png` | 4 | **small** (10.5 in, 6.8–8 pt); left panel's end labels (op9/op11/op12/op10) are stacked away from their lines and read out of order | left panel alone, fonts ≥ 12, label only op11–14 (grouped) and op15–17 |

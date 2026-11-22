@@ -526,3 +526,364 @@ stall law. Evidence: docs/results_seeds.md §6, `eval/stall_law.py`, `results/st
 > step-25/50/75 checkpoints on the hard set will answer this with the headline metric.
 > 
 > ## 7. Correcting our own motivation
+
+# Round 2 (2026-11-22): δ = 0.1 for January, 'success rate ≠ learning speed' as its own finding, LaTeX
+
+## docs/results_seeds.md: promoted from a scoping caveat to its own finding, with the implication for success-rate curricula
+
+**Before:**
+
+> **This qualifies the learning-curve finding** (docs/bandit_analysis.md §6). At op 16–17 τ=0.1 trained at p ≈
+> 0.11–0.20, the range where op 13–15 rose fastest, yet p rose 10–40× more slowly than at op 13–14. The
+> steepest-point estimate p ≈ 0.10–0.21 comes from op 13–15. At harder levels, a success rate in that range
+> does not by itself mean fast learning.
+
+**After:**
+
+> **Finding: success rate alone does not predict learning speed.** At the same success rate, harder levels
+> learn more slowly. τ=0.1 trained every level from op 13 to op 17 in the same band of success rates (p ≈
+> 0.10–0.21), yet the rise per 10 steps fell from 0.31–0.43 at op 13–14 to 0.12–0.17 at op 15, 0.03–0.05 at
+> op 16 and about 0.01 at op 17. The same p means 10–40× slower learning two or three levels higher. The
+> steepest-point estimate p ≈ 0.10–0.21 (docs/bandit_analysis.md §6) holds for op 13–15, where it was measured;
+> it does not transfer upward.
+> 
+> This matters beyond τ=0.1. **Any curriculum rule that targets a success rate** (our threshold rule, online
+> difficulty filtering, dynamic sampling) assumes that a given p means a given amount of learning. Here it does
+> not. A target p places the sampler at a level, but how much that level teaches depends on the level too. It is
+> also why the climb slowed and stalled: as the levels got harder, the time to push p from about 0.1 to the
+> trigger grew from a few steps to more than the rest of the run.
+
+## docs/results_seeds.md: January δ decided = 0.1 (user); hypothesis restated with falsification condition
+
+**Before:**
+
+> **Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.** From the
+> ceilings above, h = 0.20 → op 17 (as τ=0.1), h = 0.25 → op 16, and h = 0.30 → op 15–16 (op 15's ceiling of
+> 0.31 is within noise of 0.30).
+> * With δ = 0.1, τ = 0.15 (h = 0.25) and τ = 0.2 (h = 0.30) should stop at op 15–16. They would train a
+>   narrower range than τ=0.1 and, if the range drives the gain, newly solve fewer hard problems.
+> * With the δ = 0.05 the January plan proposed, τ = 0.15 has h = 0.20, the same trigger as τ=0.1, and should
+>   reproduce τ=0.1's path.
+> * The arm predicted to climb past op 17 is one with a trigger below 0.2, e.g. h = 0.15; τ=0.1's own p at op 17
+>   was 0.17–0.18.
+
+**After:**
+
+> **Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.**
+> DECIDED 2026-11-22: **δ = 0.1**, so the two arms have triggers 0.25 and 0.30, genuinely different from τ=0.1's
+> 0.20. Their bands are [0.075, 0.25] and [0.10, 0.30]. From the ceilings above:
+> * τ = 0.15 (h = 0.25) should stop at op 16, and τ = 0.2 (h = 0.30) at op 15–16 (op 15's ceiling of 0.31 is
+>   within noise of 0.30). Both train a narrower range than τ=0.1; if the range drives the gain, both should
+>   newly solve fewer hard problems than τ=0.1's 95.
+> * Refuted if either climbs past its predicted level, or stops below it while its final level still has
+>   headroom above the trigger in the independent ceilings.
+> * The arm predicted to climb past op 17 would need a trigger below 0.2 (e.g. h = 0.15; τ=0.1's own p at op 17
+>   was 0.17–0.18). It is not in the January plan.
+
+## docs/results_seeds.md: claims list: δ and the new finding
+
+**Before:**
+
+>    the January τ = 0.15 and 0.2 runs.
+
+**After:**
+
+>    the January τ = 0.15 and 0.2 runs (δ = 0.1, triggers 0.25 and 0.30).
+> 6. **Success rate alone does not predict learning speed** (§6): at the same p ≈ 0.10–0.21, op 16–17 learned
+>    10–40× more slowly than op 13–14. Any rule that targets a success rate inherits this.
+
+## docs/progress_report.md: January δ decided = 0.1 (user); the δ = 0.05 alternative removed
+
+**Before:**
+
+> 1. **τ = 0.15 and τ = 0.2, as a test of the stall law (§6.8).** Hypothesis: the trigger h = τ + δ, not τ, sets
+>    the final level. Ceilings measured in other arms predict h = 0.25 → op 16 and h = 0.30 → op 15–16, so
+>    with δ = 0.1 both arms should stop below op 17 and, if the range drives the gain, newly solve fewer hard
+>    problems than τ=0.1. With δ = 0.05, τ = 0.15 has τ=0.1's trigger (0.20) and should repeat its path; a
+>    trigger below 0.2 is the arm predicted to climb past op 17. Also test whether arms that train inside the
+>    predicted peak (p ≈ 0.10–0.21) beat τ=0.1.
+>    With δ = 0.1 their move-up bounds (0.25, 0.30) lie above the peak, so these arms need δ = 0.05 (bands
+>    [0.10, 0.20] and [0.15, 0.25], checked first in the simulator for oscillation) or a rule that targets the
+>    band directly. About 38 GPU-hours for two seeds each.
+
+**After:**
+
+> 1. **τ = 0.15 and τ = 0.2, as a test of the stall law (§6.8).** Hypothesis: the trigger h = τ + δ, not τ, sets
+>    the final level. We use **δ = 0.1**, so the triggers are 0.25 and 0.30, genuinely different from τ=0.1's
+>    0.20 (bands [0.075, 0.25] and [0.10, 0.30]). Ceilings measured in other arms predict that τ = 0.15 stops at
+>    op 16 and τ = 0.2 at op 15–16. Both would then train a narrower range than τ=0.1 and, if the range drives
+>    the gain, newly solve fewer hard problems. The law is refuted if either climbs past its predicted level.
+>    About 38 GPU-hours for two seeds each.
+
+## docs/progress_report.md: new §6.9: the finding as its own point
+
+**Before:**
+
+> 
+> ## 7. Correcting our own motivation
+
+**After:**
+
+> 
+> ### 6.9 Success rate alone does not predict learning speed
+> 
+> At the same success rate, harder levels learn more slowly. τ=0.1 trained op 13 to op 17 in the same band of
+> success rates, p ≈ 0.10–0.21, which is where op 13–15 rise fastest. Yet the rise per 10 steps fell from
+> 0.31–0.43 at op 13–14 to 0.12–0.17 at op 15, 0.03–0.05 at op 16 and about 0.01 at op 17: 10–40× slower at the
+> same p, two or three levels higher. The steepest-point estimate of §6.5 holds for the levels it was measured
+> on and does not transfer upward.
+> 
+> This bears on any curriculum rule that targets a success rate, including our threshold rule and the
+> difficulty filters in §2 that keep problems of intermediate accuracy. Such a rule assumes that a given p
+> means a given amount of learning. Here a target p chooses the level, but how much that level teaches also
+> depends on the level itself. The same effect explains the stall in §6.8: as levels got harder, pushing p from
+> about 0.1 to the trigger took longer, from a few steps at op 13–14 to more than the remaining run at op 17.
+> 
+> ## 7. Correcting our own motivation
+
+## docs/progress_report.md: limitations: the new finding
+
+**Before:**
+
+> * **One model and one task family.** All results are for the paper's 100M-parameter model on synthetic
+
+**After:**
+
+> * **Success rate is not learning speed.** Our rules, and the S-curve analysis behind τ=0.1, read the
+>   success rate only. At the same p, op 16–17 learned 10–40× more slowly than op 13–14 (§6.9), so a target
+>   success rate does not fix the learning rate, and the steepest-point estimate does not transfer to harder
+>   levels.
+> * **One model and one task family.** All results are for the paper's 100M-parameter model on synthetic
+
+## docs/progress_report.md: January plan: the new finding
+
+**Before:**
+
+> 6. **Per-problem selection** within a level:
+
+**After:**
+
+> 6. **Learning speed at equal success rate.** Measure the rise per step against p for every level from the
+>    existing logs and the January runs. If the slowdown with level holds, test a rule that also reads the
+>    measured rise (without the bandit's self-reward, item 4), e.g. move up when the current level's rise has
+>    flattened rather than when p crosses a fixed trigger.
+> 7. **Per-problem selection** within a level:
+
+## docs/progress_report.md: contributions: the new finding
+
+**Before:**
+
+>    run), and it is the hypothesis for the January τ values.
+
+**After:**
+
+>    run), and it is the hypothesis for the January τ values.
+> 7. **Success rate alone does not predict learning speed**: at the same p, harder levels learn 10–40× more
+>    slowly, which matters for any curriculum rule that targets a success rate.
+
+## docs/slides_outline.md: slide 9: the new finding as its own bullet
+
+**Before:**
+
+> * τ=0.1 trains levels 13–15 in that fast stretch and moves on. At 16–17 the success rate sits in the same
+>   range but rises 10–40× more slowly, and at 17 it never reaches the move-up point.
+
+**After:**
+
+> * τ=0.1 trains levels 13–15 in that fast stretch and moves on. At 16–17 the success rate sits in the same
+>   range but rises 10–40× more slowly, and at 17 it never reaches the move-up point.
+> * **So success rate alone does not tell you how fast a level will learn**: harder levels learn more slowly
+>   at the same rate. That matters for any rule that aims at a target success rate, ours included.
+
+## report/main.tex: LaTeX abstract: honest claim
+
+**Before:**
+
+> the range it discovered uniformly recovers 81\% of the gain: the right range is most of the win, and the
+> adaptive sampler is what found it.
+
+**After:**
+
+> the range it discovered uniformly recovers 81\% of the gain: the right range is most of the win, and the
+> adaptive sampler is what found it. It does not track the edge for the whole run: it climbs while levels are
+> learnable and stops at the first level whose success rate stays below its move-up trigger, for the last
+> 46--55\% of the run.
+
+## report/main.tex: LaTeX problem: 'tracks the moving edge' removed
+
+**Before:**
+
+> \textbf{Our question is whether a sampler
+> that tracks the moving edge creates more new ability
+
+**After:**
+
+> \textbf{Our question is whether a sampler
+> that moves the training difficulty up as the model learns creates more new ability
+
+## report/main.tex: LaTeX results: quantifies the stall
+
+**Before:**
+
+> stayed there, its success rate hovering near 0.17, below the 0.2 move-up bound.
+
+**After:**
+
+> stayed there for the remaining 46--55 steps, its success rate hovering near 0.17, below the 0.2 move-up
+> trigger (\S\ref{sec:stall}).
+
+## report/main.tex: LaTeX: 'while those levels were at the edge' removed
+
+**Before:**
+
+> \tauone\ instead put 84\% of its groups on op 15--17 while those levels were at the
+> edge (20,642
+
+**After:**
+
+> \tauone\ instead put 84\% of its groups on op 15--17 at success rates of 0.10--0.21
+> (20,642
+
+## report/main.tex: LaTeX: 'while they were at the edge' removed
+
+**Before:**
+
+> the levels \tauone\ trained \emph{while they were at the edge};
+
+**After:**
+
+> the levels \tauone\ trained while it was still climbing;
+
+## report/main.tex: LaTeX: 'a sampler that follows the edge' removed; new stall-law subsection
+
+**Before:**
+
+> A sampler that follows
+> the edge finds the right range in one run instead of a sweep over ranges.
+
+**After:**
+
+> A threshold sampler
+> finds a good range in one run instead of a sweep over ranges: the levels it passes through before it stalls.
+> 
+> \subsection{How adaptive is \texorpdfstring{\tauone}{tau=0.1}? A stall law}
+> \label{sec:stall}
+> 
+> \begin{table}[t]
+> \centering
+> \small
+> \begin{tabular}{lcccc}
+> \toprule
+> arm & trigger & stops at & from step & \% of run there \\
+> \midrule
+> \tauone\ (3 seeds)   & 0.2 & op 17 & 45--54 & 46--55 \\
+> \tauthree\ (2 seeds) & 0.4 & op 14 & 23--25 & 75--77 \\
+> \taufive\ (1 seed)   & 0.6 & op 11 & 0      & 100 \\
+> \bottomrule
+> \end{tabular}
+> \caption{Where each threshold arm stopped climbing. Its batch success rate there over the last 20 steps:
+> 0.17--0.18, 0.37 and 0.59, each below the trigger $\tau+\delta$.}
+> \label{tab:stall}
+> \end{table}
+> 
+> \tauone\ does not track the edge for the whole run. \textbf{Each threshold arm climbs while the level it
+> trains can reach its move-up trigger $\tau+\delta$, and stops at the first level whose success rate stays
+> below it} (Table~\ref{tab:stall}); no final level ever had the two consecutive measurements above the trigger
+> that a move needs. Ceilings measured independently in the fixed band and the control (op 11 0.57, op 13
+> 0.44, op 14 0.35, op 15 0.31, op 16 0.21, op 17 0.15) predict all three stopping levels. For \tauthree\ and
+> \taufive\ the final level is a flat plateau. For \tauone\ op 17 was still rising by about 0.01 per 10 steps,
+> so a ceiling just under 0.2 and a climb too slow for 100 steps cannot be told apart. \tauone\ is therefore
+> adaptive in the first half of its run, and its main contribution is the range it passes through.
+
+## report/main.tex: LaTeX: 'trains each level during its fastest improvement' scoped to op 13–15
+
+**Before:**
+
+> of the sweep. \tauone's band $[0.05, 0.2]$ contains the steepest point: it trains each level during its
+> fastest improvement and moves on as the curve flattens.
+
+**After:**
+
+> of the sweep. \tauone's band $[0.05, 0.2]$ contains the steepest point measured for op 13--15, and on
+> those levels it trained during the fastest improvement and moved on.
+
+## report/main.tex: LaTeX: the new finding as its own paragraph
+
+**Before:**
+
+> temperature it is the end of a level's learning curve, not its midpoint. Values of $\tau$ between 0.1 and 0.3
+> are untested.
+
+**After:**
+
+> temperature it is the end of a level's learning curve, not its midpoint. Values of $\tau$ between 0.1 and 0.3
+> are untested.
+> 
+> \textbf{Success rate alone does not predict learning speed.} At op 16--17 \tauone\ trained at the same
+> $p\approx0.10$--$0.21$, but $p$ rose only 0.01--0.05 per 10 steps, against 0.31--0.43 at op 13--14. At the
+> same success rate, harder levels learn 10--40$\times$ more slowly. Any rule that targets a success rate,
+> including ours and the difficulty filters of \S\ref{sec:related}, assumes a given $p$ means a given amount of
+> learning; here it does not. It is also why the climb slowed and stalled.
+
+## report/main.tex: LaTeX limitations: stall + success-rate finding
+
+**Before:**
+
+> set ($p=0.017$) is borderline. One model and one task family.
+
+**After:**
+
+> set ($p=0.017$) is borderline. Adaptivity is mostly early (\S\ref{sec:stall}), and the samplers read the
+> success rate only, which does not fix the learning rate at harder levels. One model and one task family.
+
+## report/main.tex: LaTeX plan: δ = 0.1 and the stall-law hypothesis
+
+**Before:**
+
+> (1) $\tau=0.15$ and $0.2$, which train inside the predicted peak
+> (needs $\delta=0.05$);
+
+**After:**
+
+> (1) $\tau=0.15$ and $0.2$ with $\delta=0.1$ as a test of the stall law: their
+> triggers (0.25, 0.30) predict stops at op 16 and op 15--16, a narrower range and, if the range drives the gain,
+> fewer newly solved problems than \tauone;
+
+## report/main.tex: LaTeX plan: the new finding
+
+**Before:**
+
+> (5) keeping a share of op 11--14 in \tauone's batches to remove the reliability cost.
+
+**After:**
+
+> (5) keeping a share of op 11--14 in \tauone's batches to remove the reliability cost; (6) measuring learning
+> speed against success rate per level, and a rule that moves up when a level's rise flattens rather than at a
+> fixed success rate.
+
+# Round 3 (2026-11-22): checkpoint evaluation result
+
+## docs/results_seeds.md §6: checkpoint evaluation result replaces "proposed and **not yet run** (needs approval)"
+
+**Before:**
+
+> The pass@128 evaluation of the step-25/50/75 checkpoints is proposed and **not yet run** (needs approval).
+
+**After:** a table of newly solved at steps 25/50/75/100 (τ=0.1 vs control, paired tests), and the paragraph
+"**τ=0.1 pulled ahead twice.** … the step-100 advantage over the control comes from concentrating on op 17 late,
+not from the climb itself, whose lead had vanished by step 50. That concentration is not adaptive …"
+
+## docs/progress_report.md §6.8: checkpoint evaluation result
+
+**Before:**
+
+> Evaluating the step-25/50/75 checkpoints on the hard set will answer this with the headline metric.
+
+**After:**
+
+> The step-25/50/75 checkpoints on the hard set (newly solved, mean of 3 seeds, pooled paired test) answer it
+> with the headline metric. τ=0.1 led by +21 problems at step 25 while climbing (54 vs 33, p < 10⁻⁶). The control
+> caught up by step 50 (79 vs 75, p = 0.11; op 18–20 tied, 16.7 vs 16.3). The lead re-formed during the stall at op
+> 17: +8 at step 75 (op 18–20: +6, p = 0.023) and +8.7 at step 100. **The final advantage over the control comes
+> from concentrated training on op 17 late in the run, not from the climb**, whose lead had disappeared by step
+> 50. That late concentration is not itself adaptive.
