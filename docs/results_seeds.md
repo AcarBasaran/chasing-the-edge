@@ -146,7 +146,9 @@ the arms that keep training near the base of the range. The control has no such 
 5. **Stall law** (§6, all 6 threshold runs): a threshold arm climbs while the trained level can reach its
    move-up trigger τ + δ and stops at the first level whose success rate stays below it. τ=0.1 is therefore
    adaptive in the first half of the run only (46–55% of its steps at op 17). The law is the hypothesis for
-   the January τ = 0.15 and 0.2 runs.
+   the January τ = 0.15 and 0.2 runs (δ = 0.1, triggers 0.25 and 0.30).
+6. **Success rate alone does not predict learning speed** (§6): at the same p ≈ 0.10–0.21, op 16–17 learned
+   10–40× more slowly than op 13–14. Any rule that targets a success rate inherits this.
 
 ## 6. How adaptive is τ=0.1? The stall law (2026-11-22)
 
@@ -199,10 +201,18 @@ The climb also slowed level by level. τ=0.1's batch p rose, per 10 steps of tra
 is fully adaptive for about its first sixth, slowly adaptive until step 45–54, and not adaptive at all for
 the second half of the run.**
 
-**This qualifies the learning-curve finding** (docs/bandit_analysis.md §6). At op 16–17 τ=0.1 trained at p ≈
-0.11–0.20, the range where op 13–15 rose fastest, yet p rose 10–40× more slowly than at op 13–14. The
-steepest-point estimate p ≈ 0.10–0.21 comes from op 13–15. At harder levels, a success rate in that range
-does not by itself mean fast learning.
+**Finding: success rate alone does not predict learning speed.** At the same success rate, harder levels
+learn more slowly. τ=0.1 trained every level from op 13 to op 17 in the same band of success rates (p ≈
+0.10–0.21), yet the rise per 10 steps fell from 0.31–0.43 at op 13–14 to 0.12–0.17 at op 15, 0.03–0.05 at
+op 16 and about 0.01 at op 17. The same p means 10–40× slower learning two or three levels higher. The
+steepest-point estimate p ≈ 0.10–0.21 (docs/bandit_analysis.md §6) holds for op 13–15, where it was measured;
+it does not transfer upward.
+
+This matters beyond τ=0.1. **Any curriculum rule that targets a success rate** (our threshold rule, online
+difficulty filtering, dynamic sampling) assumes that a given p means a given amount of learning. Here it does
+not. A target p places the sampler at a level, but how much that level teaches depends on the level too. It is
+also why the climb slowed and stalled: as the levels got harder, the time to push p from about 0.1 to the
+trigger grew from a few steps to more than the rest of the run.
 
 **When did τ=0.1 pull ahead of the control? A first look from logs** (tracking set: 32 problems × 8 answers
 per level at T = 1, every 10 steps; mean of 3 seeds; τ=0.1 / control):
@@ -217,17 +227,37 @@ per level at T = 1, every 10 steps; mean of 3 seeds; τ=0.1 / control):
 τ=0.1's lead on op 15–16 opens while it climbs (steps 20–50) and is gone in this measure by steps 80–100. Its
 lead on op 17 grows during the stall, while it trains op 17 exclusively. On op 18–20 it leads from step 30 on,
 by a small margin that does not clearly grow or shrink. The tracking p is a noisy T = 1 success rate on 32
-problems per level, not the newly-solved count. The pass@128 evaluation of the step-25/50/75 checkpoints is
-proposed and **not yet run** (needs approval).
+problems per level, not the newly-solved count.
 
-**Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.** From the
-ceilings above, h = 0.20 → op 17 (as τ=0.1), h = 0.25 → op 16, and h = 0.30 → op 15–16 (op 15's ceiling of
-0.31 is within noise of 0.30).
-* With δ = 0.1, τ = 0.15 (h = 0.25) and τ = 0.2 (h = 0.30) should stop at op 15–16. They would train a
-  narrower range than τ=0.1 and, if the range drives the gain, newly solve fewer hard problems.
-* With the δ = 0.05 the January plan proposed, τ = 0.15 has h = 0.20, the same trigger as τ=0.1, and should
-  reproduce τ=0.1's path.
-* The arm predicted to climb past op 17 is one with a trigger below 0.2, e.g. h = 0.15; τ=0.1's own p at op 17
-  was 0.17–0.18.
+**Checkpoint evaluation (run 2026-11-22, 2.1 GPU-h):** hard-set newly solved at steps 25/50/75, plus step 100,
+mean of 3 seeds each, with the same pooled paired test as §2 (`slurm/ckpt_eval.sh`, `eval/ckpt_timeline.py`,
+`results/ckpt_timeline*.csv`):
+
+| step | τ=0.1 phase (seed 0–2) | hard set: τ=0.1 / control | paired Δ per seed [95% CI], problems better/worse, p | op 18–20: τ=0.1 / control | paired Δ, p |
+|---|---|---|---|---|---|
+| 25 | climbing (op 15–16) | 54.0 / 33.0 | **+21.0** [+13.7, +28.7], 30/1, p < 10⁻⁶ | 6.3 / 1.0 | +5.3, 7/0, p = 0.016 |
+| 50 | just reached op 17 (steps 45–54) | 79.3 / 75.0 | +4.3 [−0.7, +9.7], 17/8, p = 0.11 | 16.7 / 16.3 | +0.3, 8/6, p = 0.79 |
+| 75 | stalled at op 17 | 89.0 / 81.0 | **+8.0** [+2.3, +14.0], 19/9, p = 0.087 | 26.0 / 20.0 | **+6.0**, 11/2, p = 0.023 |
+| 100 | stalled at op 17 | 95.0 / 86.3 | **+8.7** [+3.7, +14.3], 17/5, p = 0.017 | 27.7 / 24.0 | +3.7, 8/2, p = 0.11 |
+
+**τ=0.1 pulled ahead twice.** While climbing it built a large early lead (+21 at step 25: the control was still
+spending 3/7 of its batch on op 15–17 while those levels were near p = 0). The control caught up by step 50,
+when the gap was +4 on the hard set and zero on op 18–20. The final margin then re-formed **during the stall**,
+between steps 50 and 75, while τ=0.1 trained op 17 alone: +8 on the hard set and +6 on op 18–20 (p = 0.023),
+the same size as at step 100. So the step-100 advantage over the control comes from concentrating on op 17
+late, not from the climb itself, whose lead had vanished by step 50. That concentration is not adaptive: a
+fixed schedule (a short climb, then op 17) would do the same. The four per-step tests are uncorrected, and step
+50 coincides with τ=0.1 arriving at op 17.
+
+**Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.**
+DECIDED 2026-11-22: **δ = 0.1**, so the two arms have triggers 0.25 and 0.30, genuinely different from τ=0.1's
+0.20. Their bands are [0.075, 0.25] and [0.10, 0.30]. From the ceilings above:
+* τ = 0.15 (h = 0.25) should stop at op 16, and τ = 0.2 (h = 0.30) at op 15–16 (op 15's ceiling of 0.31 is
+  within noise of 0.30). Both train a narrower range than τ=0.1; if the range drives the gain, both should
+  newly solve fewer hard problems than τ=0.1's 95.
+* Refuted if either climbs past its predicted level, or stops below it while its final level still has
+  headroom above the trigger in the independent ceilings.
+* The arm predicted to climb past op 17 would need a trigger below 0.2 (e.g. h = 0.15; τ=0.1's own p at op 17
+  was 0.17–0.18). It is not in the January plan.
 
 Each prediction is checkable from the sampler log alone (final level and arrival step).

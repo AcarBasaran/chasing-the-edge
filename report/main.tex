@@ -40,7 +40,9 @@ model solves more than 20\% of the current level newly solves $95.0\pm1.7$ of 20
 model never solved, against 48 for the paper's band; on the three hardest levels, which it never trained
 on, it beats uniform sampling over all levels ($27.7$ vs $20.0$ of 102, $p=0.002$). A control that samples
 the range it discovered uniformly recovers 81\% of the gain: the right range is most of the win, and the
-adaptive sampler is what found it. The arm with the most informative gradient learns nothing new, and an
+adaptive sampler is what found it. It does not track the edge for the whole run: it climbs while levels are
+learnable and stops at the first level whose success rate stays below its move-up trigger, for the last
+46--55\% of the run. The arm with the most informative gradient learns nothing new, and an
 improvement-rate bandit fails because the level it trains rewards itself.
 \end{abstract}
 
@@ -63,7 +65,7 @@ that RL produces new ability only when training sits at the model's edge, and th
 But the edge moves. In our reproduction of the paper's run, levels the band never trains on become
 learnable: averaged over two seeds, success at op 15 rises from 0 to 0.25 and at op 16 from 0 to 0.12 within
 100 steps, while the band keeps spending its budget on op 11--14. \textbf{Our question is whether a sampler
-that tracks the moving edge creates more new ability than the fixed band, or only more reliability on what
+that moves the training difficulty up as the model learns creates more new ability than the fixed band, or only more reliability on what
 the model can already do, and which notion of ``the edge'' a sampler should aim for.}
 
 So far we have (i) reproduced the paper's base model and fixed-band baseline; (ii) built and run four
@@ -209,7 +211,8 @@ Right: problems newly solved on op 18--20, which \tauone\ and the op 11--17 cont
 
 Table~\ref{tab:main} summarises all arms. The samplers behaved the same way in every seed: \tauone\ climbed
 from op 11 to op 14 by step 8, reached op 15 at step 16, op 16 at step 22--25 and op 17 at step 45--54, and
-stayed there, its success rate hovering near 0.17, below the 0.2 move-up bound. \tauthree\ climbed through
+stayed there for the remaining 46--55 steps, its success rate hovering near 0.17, below the 0.2 move-up
+trigger (\S\ref{sec:stall}). \tauthree\ climbed through
 the paper's band and stopped at op 14 by step 25. \taufive\ never left op 11. The bandit settled on op 12--14.
 
 \subsection{Headroom: levels \texorpdfstring{\tauone}{tau=0.1} never trained on}
@@ -219,8 +222,8 @@ problems. Yet \tauone\ newly solves $27.7\pm0.6$ of those 102 problems and unifo
 (Figure~\ref{fig:hard}). Paired by problem over three seeds each, \tauone\ solves 15 problems more often and
 uniform 2 ($p=0.002$; $+7.7$ per seed, 95\% CI $[+3.7, +12.3]$), and the direction holds in every seed
 separately. The gradient explains it: 97\% of uniform's groups at op 18--20 had zero gradient, because every
-answer there failed. \tauone\ instead put 84\% of its groups on op 15--17 while those levels were at the
-edge (20,642 informative groups per run, vs.\ 2,300 for uniform and 0 for the fixed band), and the skill it
+answer there failed. \tauone\ instead put 84\% of its groups on op 15--17 at success rates of 0.10--0.21
+(20,642 informative groups per run, vs.\ 2,300 for uniform and 0 for the fixed band), and the skill it
 built carried two to three levels beyond anything it trained on.
 
 \subsection{Range or schedule?}
@@ -252,14 +255,43 @@ schedule\textsuperscript{c}        & $+8.7$ (18\%)  & $+3.7$ (17\%) \\
 on op 18--20. \textbf{The schedule adds a small margin}: on the hard set \tauone\ beats the control on 17
 problems and loses on 5 ($p=0.017$; $+8.7$ per seed, CI $[+3.3,+14.3]$), ahead in every seed; on op 18--20
 alone the gap ($+3.7$, 8 vs.\ 2 problems, $p=0.11$) is not significant. Per level, the margin sits at op 15
-(29.0 vs.\ 26.3) and op 16 (20.0 vs.\ 17.7), the levels \tauone\ trained \emph{while they were at the edge};
+(29.0 vs.\ 26.3) and op 16 (20.0 vs.\ 17.7), the levels \tauone\ trained while it was still climbing;
 at op 17, where both trained heavily, they tie (18.3 each).
 
 \textbf{What the adaptive sampler contributes is the range itself.} The paper's band gets 48 hard problems;
 the range \tauone\ found gets 86 sampled uniformly and 95 with its schedule. op 11--17 is the paper's band
 plus three levels where the base model's success rate is exactly zero: nothing in the base model's
-measurements points to them, and we would not have tried this range without \tauone. A sampler that follows
-the edge finds the right range in one run instead of a sweep over ranges.
+measurements points to them, and we would not have tried this range without \tauone. A threshold sampler
+finds a good range in one run instead of a sweep over ranges: the levels it passes through before it stalls.
+
+\subsection{How adaptive is \texorpdfstring{\tauone}{tau=0.1}? A stall law}
+\label{sec:stall}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+arm (seeds) & trigger & stops at & from step & \% of run \\
+\midrule
+\tauone\ (3)   & 0.2 & op 17 & 45--54 & 46--55 \\
+\tauthree\ (2) & 0.4 & op 14 & 23--25 & 75--77 \\
+\taufive\ (1)   & 0.6 & op 11 & 0      & 100 \\
+\bottomrule
+\end{tabular}
+\caption{Where each threshold arm stopped climbing. Its batch success rate there over the last 20 steps:
+0.17--0.18, 0.37 and 0.59, each below the trigger $\tau+\delta$.}
+\label{tab:stall}
+\end{table}
+
+\tauone\ does not track the edge for the whole run. \textbf{Each threshold arm climbs while the level it
+trains can reach its move-up trigger $\tau+\delta$, and stops at the first level whose success rate stays
+below it} (Table~\ref{tab:stall}); no final level ever had the two consecutive measurements above the trigger
+that a move needs. Ceilings measured independently in the fixed band and the control (op 11 0.57, op 13
+0.44, op 14 0.35, op 15 0.31, op 16 0.21, op 17 0.15) predict all three stopping levels. For \tauthree\ and
+\taufive\ the final level is a flat plateau. For \tauone\ op 17 was still rising by about 0.01 per 10 steps,
+so a ceiling just under 0.2 and a climb too slow for 100 steps cannot be told apart. \tauone\ is therefore
+adaptive in the first half of its run, and its main contribution is the range it passes through.
 
 \subsection{More informative gradient did not mean more learning}
 \label{sec:signal}
@@ -271,12 +303,18 @@ informative, the most of any arm, and newly solves nothing; \tauone\ keeps 24.7\
 Per-step success rates of each level during training trace an S-shaped curve. For every level that starts
 at $p\approx0$ (fixed band and uniform runs, two seeds each, training reward, $T=1$), the steepest rise is at
 $p\approx0.10$--$0.21$, and the curve flattens at a ceiling of $p\approx0.35$--$0.58$. This explains both ends
-of the sweep. \tauone's band $[0.05, 0.2]$ contains the steepest point: it trains each level during its
-fastest improvement and moves on as the curve flattens. \taufive's band $[0.4, 0.6]$ is the ceiling: it
+of the sweep. \tauone's band $[0.05, 0.2]$ contains the steepest point measured for op 13--15, and on
+those levels it trained during the fastest improvement and moved on. \taufive's band $[0.4, 0.6]$ is the ceiling: it
 maximises informative groups where nothing is left to learn, and since op 11 levels off at 0.57, below the
 0.6 move-up bound, it never leaves. Our proposal assumed $p=0.5$ was the sweet spot; under this reward and
 temperature it is the end of a level's learning curve, not its midpoint. Values of $\tau$ between 0.1 and 0.3
 are untested.
+
+\textbf{Success rate alone does not predict learning speed.} At op 16--17 \tauone\ trained at the same
+$p\approx0.10$--$0.21$, but $p$ rose only 0.01--0.05 per 10 steps, against 0.31--0.43 at op 13--14. At the
+same success rate, harder levels learn 10--40$\times$ more slowly. Any rule that targets a success rate,
+including ours and the difficulty filters of \S\ref{sec:related}, assumes a given $p$ means a given amount of
+learning; here it does not. It is also why the climb slowed and stalled.
 
 \subsection{The bandit rewards itself}
 \label{sec:bandit}
@@ -309,13 +347,17 @@ reliability cost; \tauone\ finds the range and adds a small margin on the hardes
 are 1--3 per arm (the fixed band's two seeds agree exactly, 48 and 48). The control's range was chosen in
 hindsight, so 81\% is an upper bound on what a range picked in advance would achieve. Tests are uncorrected:
 \tauone\ vs.\ uniform ($p=0.002$) survives any reasonable correction, \tauone\ vs.\ the control on the hard
-set ($p=0.017$) is borderline. One model and one task family.
+set ($p=0.017$) is borderline. Adaptivity is mostly early (\S\ref{sec:stall}), and the samplers read the
+success rate only, which does not fix the learning rate at harder levels. One model and one task family.
 
-\paragraph{Plan for the final report.} (1) $\tau=0.15$ and $0.2$, which train inside the predicted peak
-(needs $\delta=0.05$); (2) range-finding as a method: a short \tauone\ burn-in, then uniform sampling over
+\paragraph{Plan for the final report.} (1) $\tau=0.15$ and $0.2$ with $\delta=0.1$ as a test of the stall law: their
+triggers (0.25, 0.30) predict stops at op 16 and op 15--16, a narrower range and, if the range drives the gain,
+fewer newly solved problems than \tauone; (2) range-finding as a method: a short \tauone\ burn-in, then uniform sampling over
 the range it found; (3) 200-step runs of \tauone, the control and the fixed band; (4) bandit fixes that
 remove the self-reward loop (credit only improvement an arm did not train for, or mix in a headroom term);
-(5) keeping a share of op 11--14 in \tauone's batches to remove the reliability cost.
+(5) keeping a share of op 11--14 in \tauone's batches to remove the reliability cost; (6) measuring learning
+speed against success rate per level, and a rule that moves up when a level's rise flattens rather than at a
+fixed success rate.
 
 \paragraph{Compute.} The 17 completed runs took 139 GPU-hours; the project total, including evaluation,
 a bandit ablation and 48 GPU-hours lost to jobs that hung at startup (a Ray port collision, since fixed), is
