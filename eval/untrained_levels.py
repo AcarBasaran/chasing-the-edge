@@ -132,7 +132,10 @@ def plot(rows, out: Path) -> None:
         v = [r[key] for r in rows if r["method"] == arm and r["level"] == level]
         return sum(v) / len(v) if v else float("nan"), v
 
-    fig, (ax, bx) = plt.subplots(1, 2, figsize=(10.5, 3.9), dpi=150, facecolor=SURF,
+    def n_of(arm):
+        return len({r["seed"] for r in rows if r["method"] == arm})
+
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(13, 5.4), dpi=150, facecolor=SURF,
                                  gridspec_kw={"width_ratios": [1.35, 1], "wspace": 0.55})
     for axis in (ax, bx):
         axis.set_facecolor(SURF)
@@ -140,11 +143,11 @@ def plot(rows, out: Path) -> None:
             axis.spines[s].set_visible(False)
         for s in ("left", "bottom"):
             axis.spines[s].set_color(AXIS)
-        axis.tick_params(labelsize=7.5, colors=INK2)
+        axis.tick_params(labelsize=11, colors=INK2)
 
     # Left: pass@128 per hard level. Hollow marker = the arm trained on that level, filled = never trained there.
     ax.axvspan(17.5, 20.5, color=GRID, lw=0, zorder=0)
-    ax.text(19, 1.0, "never trained on by τ=0.1,\nτ=0.3, fixed band, uniform 11–17", ha="center", va="top", fontsize=6.8,
+    ax.text(19, 1.0, "never trained on by τ=0.1,\nτ=0.3, fixed band, uniform 11–17", ha="center", va="top", fontsize=10,
             color=INK2, transform=ax.get_xaxis_transform())
     for arm in arms:
         col = METHOD_COLOR.get(arm, INK2)
@@ -152,17 +155,17 @@ def plot(rows, out: Path) -> None:
         trained = [any(r["trained_here"] for r in rows if r["method"] == arm and r["level"] == str(L)) for L in LEVELS]
         ax.plot(LEVELS, ys, color=col, lw=2, zorder=2, label=LABEL.get(arm, arm))
         for L, y, t in zip(LEVELS, ys, trained):
-            ax.scatter([L], [y], s=36, zorder=3, linewidth=1.8, edgecolor=col,
+            ax.scatter([L], [y], s=60, zorder=3, linewidth=1.8, edgecolor=col,
                        facecolor=SURF if t else col)
     ax.set_xticks(LEVELS)
     ax.set_xticklabels([f"op{L}" for L in LEVELS])
     ax.set_xlim(14.6, 20.4)
     ax.set_ylim(0, 100)
-    ax.set_ylabel("pass@128 on hard test set (%)", fontsize=8, color=INK)
+    ax.set_ylabel("pass@128 on hard test set (%)", fontsize=11, color=INK)
     ax.grid(axis="y", color=GRID, lw=0.6)
     ax.set_axisbelow(True)
-    ax.set_title("pass@128 per level (○ = arm trained on this level, ● = never trained on it)",
-                 fontsize=8, color=INK, loc="left")
+    ax.set_title("pass@128 per level\n○ = arm trained on this level, ● = never trained on it",
+                 fontsize=11, color=INK, loc="left")
 
     # Right: newly solved on the pooled untrained levels 18-20, one horizontal bar per arm.
     order = sorted(arms, key=lambda m: mean(m, "18-20", "newly_solved")[0])
@@ -176,22 +179,21 @@ def plot(rows, out: Path) -> None:
             bx.scatter(vals, [y] * len(vals), s=12, color=SURF, edgecolor=INK, linewidth=0.8, zorder=4)
         note = (f"trained there: {groups / 1000:.0f}k groups, {inf:.0f} with gradient" if groups
                 else "never trained there")
-        bx.annotate(f"{m:.0f}   {note}", (max(vals + [m]), y), textcoords="offset points", xytext=(4, 0),
-                    va="center", fontsize=6.8, color=INK)
+        label = f"{m:.1f}" if len(vals) > 1 else f"{m:.0f}"     # mean over seeds: 27.7, not 28
+        bx.annotate(f"{label}   {note}", (max(vals + [m]), y), textcoords="offset points", xytext=(5, 0),
+                    va="center", fontsize=10, color=INK)
     bx.set_yticks(range(len(order)))
-    bx.set_yticklabels([LABEL.get(a, a) for a in order], fontsize=7.5, color=INK)
-    bx.set_xlim(0, 102 * 0.55)
-    bx.set_xlabel("problems newly solved, op18–20 (of 102; base model solved 0)", fontsize=8, color=INK)
+    bx.set_yticklabels([f"{LABEL.get(a, a)} (n={n_of(a)})" for a in order], fontsize=11, color=INK)
+    bx.set_xlim(0, 102 * 0.72)
+    bx.set_xlabel("problems newly solved, op18–20\n(of 102; base model solved 0)", fontsize=11, color=INK)
     bx.grid(axis="x", color=GRID, lw=0.6)
     bx.set_axisbelow(True)
-    bx.set_title("New capability on levels 18–20", fontsize=8, color=INK, loc="left")
+    bx.set_title("New capability on levels 18–20\nbar = mean over n seeds, dots = seeds", fontsize=11, color=INK, loc="left")
 
-    n_seeds = max(len({r["seed"] for r in rows if r["method"] == m}) for m in arms)
     h, lab = ax.get_legend_handles_labels()
-    fig.legend(h, lab, loc="lower center", ncol=len(lab), fontsize=7, frameon=False, bbox_to_anchor=(0.5, -0.04))
-    fig.suptitle("Hard test set (op15–20), strict scoring, T=0.7, 128 samples per problem, "
-                 + (f"{n_seeds} seeds: mean, dots = seeds" if n_seeds > 1 else "seed 0"),
-                 fontsize=8.5, color=INK, x=0.01, ha="left")
+    fig.legend(h, lab, loc="lower center", ncol=4, fontsize=11, frameon=False, bbox_to_anchor=(0.5, -0.1))
+    fig.suptitle("Hard test set (op15–20), strict scoring, T=0.7, 128 samples per problem; mean over seeds",
+                 fontsize=12, color=INK, x=0.01, ha="left")
     fig.subplots_adjust(left=0.06, right=0.97, top=0.84, bottom=0.2)
     fig.savefig(out, facecolor=SURF, bbox_inches="tight")
 
