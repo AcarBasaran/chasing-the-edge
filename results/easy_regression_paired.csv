@@ -1,0 +1,9 @@
+split,a,b,n_seeds_a,n_seeds_b,n_problems,diff_mean,ci95_lo,ci95_hi,a_higher_problems,b_higher_problems,sign_test_p,seed_pairs_a_below,contribution_by_level
+test_easy,threshold_tau1,fixed_band,3,2,225,-1.503,-2.741,-0.559,34,74,0.000149,6/6,op2:-0.17 op3:-0.01 op4:-0.18 op5:+0.04 op6:-0.30 op7:-0.57 op8:-0.06 op9:-0.01 op10:-0.24
+test_easy,threshold_tau1,uniform,3,3,225,-2.434,-4.067,-1.111,22,82,0.0,9/9,op2:-0.18 op3:+0.00 op4:-0.47 op5:+0.06 op6:-0.65 op7:-0.61 op8:-0.24 op9:-0.12 op10:-0.22
+test_easy,threshold_tau1,uniform_11_17,3,3,225,-1.394,-2.294,-0.674,28,78,1e-06,9/9,op2:-0.17 op3:+0.03 op4:-0.16 op5:+0.02 op6:-0.20 op7:-0.43 op8:-0.18 op9:-0.05 op10:-0.25
+test_easy,threshold_tau1,base,3,1,225,-1.549,-3.037,-0.33,43,66,0.034615,3/3,op2:-0.18 op3:-0.07 op4:-0.47 op5:+0.01 op6:-0.33 op7:-0.57 op8:+0.13 op9:+0.04 op10:-0.10
+test_medium,threshold_tau1,fixed_band,3,2,800,-2.551,-3.463,-1.7,267,412,0.0,6/6,op11:-0.49 op12:-0.56 op13:-0.89 op14:-0.60
+test_medium,threshold_tau1,uniform,3,3,800,-0.674,-1.564,0.203,315,334,0.479867,9/9,op11:-0.15 op12:-0.04 op13:-0.33 op14:-0.15
+test_medium,threshold_tau1,uniform_11_17,3,3,800,-2.465,-3.18,-1.793,225,419,0.0,9/9,op11:-0.39 op12:-0.39 op13:-0.92 op14:-0.76
+test_medium,threshold_tau1,base,3,1,800,29.152,26.37,31.847,622,65,0.0,0/3,op11:+2.06 op12:+8.40 op13:+10.10 op14:+8.59

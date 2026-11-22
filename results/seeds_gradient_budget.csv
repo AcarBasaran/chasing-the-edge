@@ -1,7 +1,7 @@
 method,n_seeds,groups_per_run,informative_frac_mean,informative_frac_sd,informative_frac_min,informative_frac_max,informative_groups_op2-10_mean,groups_op2-10_mean,informative_groups_op11-14_mean,groups_op11-14_mean,informative_groups_op15-17_mean,groups_op15-17_mean,informative_groups_op18-20_mean,groups_op18-20_mean
 fixed_band,2,102400,0.3536,0.0007,0.3531,0.3541,0,0,36210,102400,0,0,0,0
 uniform,3,102400,0.1877,0.0016,0.186,0.1891,8918,48550,7489,21546,2300,16214,517,16090
-uniform_11_17,1,102400,0.2856,,0.2856,0.2856,0,0,21058,58714,8184,43686,0,0
+uniform_11_17,3,102400,0.2865,0.0012,0.2856,0.2879,0,0,21073,58689,8268,43711,0,0
 threshold_tau1,3,102400,0.247,0.003,0.2442,0.2501,0,0,4654,16384,20642,86016,0,0
 threshold_tau3,2,102400,0.3399,0.0008,0.3394,0.3405,0,0,34810,102400,0,0,0,0
 threshold_tau5,1,102400,0.4011,,0.4011,0.4011,0,0,41071,102400,0,0,0,0
