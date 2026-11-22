@@ -218,6 +218,21 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 
 ## Figures to (re)make before the deck
 
+**Projector check (2026-11-22).** Rule: text ≥ 14 pt once the figure is scaled to slide width (13.3 in), i.e. a
+figure W inches wide needs fonts ≥ 14 × W / 13.3 pt.
+
+| figure | slide | status | fix |
+|---|---|---|---|
+| `hard_by_level.png` | 11 | **OK** (regenerated: 13 in, 10–12 pt, labels to one decimal, n per arm) | – |
+| `sampler_levels.png` | 7 | **illegible**: all 16 runs side by side (61 in wide), 6 pt | rerun `eval/plot_sampler_levels.py` with 4 runs (τ=0.1, τ=0.3, τ=0.5 s0, bandit_s0) and fonts ≥ 12 |
+| `bandit_q.png` | 10 | **too small** (4 columns, 17 in, 7 pt ≈ 5.6 pt on screen); "greedy opNN" notes overlap the Q steps; end labels op13/op14 crowd | one column (bandit_s0) + optionally m10; fonts ≥ 12; greedy notes above the plot area |
+| `scurve.png` | 9 | **small** (12 in, 8–9 pt ≈ 9.5 pt); τ-band labels light grey on tint; legend sits on the op13/14 traces | right panel alone at slide size, fonts ≥ 12, legend outside, band labels in ink |
+| `informative_over_training.png` | 4 | **small** (10.5 in, 6.8–8 pt); left panel's end labels (op9/op11/op12/op10) are stacked away from their lines and read out of order | left panel alone, fonts ≥ 12, label only op11–14 (grouped) and op15–17 |
+| `informative_fraction_by_level.png` | 3 | **mostly OK** (8 in, ≈ 12–14 pt); "paper's fixed band" label touches the dashed curves; 5-entry legend is more than slide 3 needs | drop the two dashed level-mean curves and the T=0.7 line for the slide version |
+| `method_comparison.png` | 13 thumbnail / backup | **small** (6 panels, 6.5–8 pt); value labels collide with seed dots | for slide 13 use a hard-column-only version; full figure stays backup |
+| `per_problem_p_hist.png` | backup | small (≈ 9 pt) but uncluttered | acceptable for backup |
+| decomposition bar (12A), per-level bars (12B) | 12 | **do not exist yet** | new; numbers in docs/results_seeds.md §3 |
+
 * Slide 5: three-column graphic (no data).
 * Slide 7: `eval/plot_sampler_levels.py` with τ=0.1, τ=0.3, τ=0.5 and bandit_s0 only.
 * Slide 8: no figure; two lines of large type.
