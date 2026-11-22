@@ -71,7 +71,8 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * In the paper's fixed-band run, levels it *never trains on* start to teach something (seed 0, step 50):
   operation 15 goes from never solved to **27%** of problems teaching something, 16 to **15%**, 17 to **6%**.
 * **Figure:** `results/informative_over_training.png`, left panel.
-* *Speaker note:* a sampler that follows the edge could move up to these levels. That is the idea.
+* *Speaker note:* an adaptive sampler could move up to these levels. That is the idea; slide 7 shows how far
+  it actually goes.
 
 ## Act 2: three things a sampler could aim for
 
@@ -106,10 +107,14 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 ### Slide 7. Where each sampler went
 
 * **Headline:** τ=0.5 never leaves level 11. The bandit gets stuck at 12–14. τ=0.3 climbs through the
-  paper's band and stops at its top (14). τ=0.1 climbs to 17. Same in every seed.
+  paper's band and stops at its top (14). τ=0.1 climbs to 17 and stops there. Same in every seed.
+* **Each threshold sampler stops at the first level it cannot push past its move-up point (τ + 0.1):**
+  level 11 for τ=0.5 (levels off at 0.59, move-up point 0.6), 14 for τ=0.3 (0.37 vs 0.4), 17 for τ=0.1
+  (0.17 vs 0.2). τ=0.1 spends the second half of the run (46–55% of its steps) at level 17.
 * **Figure:** `results/sampler_levels.png` (τ=0.1, τ=0.3, τ=0.5 and bandit seed 0), y-axis "difficulty
   being trained", x-axis "training step".
-* *Speaker note:* τ=0.1 reaches level 15 at step 16 and level 17 at step 45–54 in all three seeds.
+* *Speaker note:* τ=0.1 reaches level 15 at step 16 and level 17 at step 45–54 in all three seeds, then
+  stays. It adapts while levels are learnable, then stops.
 
 ### Slide 8. More learning signal did not mean more learning
 
@@ -126,9 +131,10 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 
 ### Slide 9. Why: where a level learns fastest
 
-* **Headline:** A level improves fastest when the model solves it 10–20% of the time, and stops improving
-  at about 50%.
-* τ=0.1 trains each level exactly in that fast stretch, then moves on.
+* **Headline:** Levels 13–15 improve fastest when the model solves them 10–20% of the time, and levels stop
+  improving at about 50%.
+* τ=0.1 trains levels 13–15 in that fast stretch and moves on. At 16–17 the success rate sits in the same
+  range but rises 10–40× more slowly, and at 17 it never reaches the move-up point.
 * τ=0.5 trains where the level has already stopped improving. The model's success rate at level 11 levels
   off at 0.57, just below τ=0.5's move-up point (0.6), so it never moves.
 * This corrects our own proposal, which assumed "solved half the time" is the sweet spot.
@@ -194,9 +200,10 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * **Practical reading:** if you know the right range, sample it uniformly: 81% of the gain, no cost. If you
   don't, τ=0.1 finds it, and its climb adds a small margin on the hardest problems.
 * **Next (January):**
-  * Targets 0.15 and 0.2: train right inside the fast-improvement stretch.
+  * Targets 0.15 and 0.2, as a test of the stall law: it predicts they stop earlier (level 15–16), so they
+    should do worse if the range is what matters.
   * Find the range with τ=0.1 briefly, then train uniformly on it.
-  * 200-step runs: does the fixed band catch up?
+  * 200-step runs: does the fixed band catch up, and does τ=0.1 get past level 17?
   * Fix the bandit so it can't reward itself.
 
 ### Slide 12B. The climb matters: τ=0.1 beats its own range sampled uniformly   *(backup)*
@@ -204,8 +211,8 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * **Headline:** τ=0.1 newly solves more hard problems than uniform sampling over the same levels (11–17).
 * Whole hard set: **95.0 ± 1.7 vs 86.3 ± 2.1**; problem by problem, better on 17, worse on 5 (p = 0.017),
   +8.7 per seed [95% CI +3.3, +14.3]. Same direction in every seed.
-* Where the gap is: levels 15 (29.0 vs 26.3) and 16 (20.0 vs 17.7), the levels τ=0.1 trained *while they
-  were at the edge*, plus 1–3 problems per level beyond. At level 17, where both trained heavily, they tie
+* Where the gap is: levels 15 (29.0 vs 26.3) and 16 (20.0 vs 17.7), the levels τ=0.1 trained while it
+  was still climbing, plus 1–3 problems per level beyond. At level 17, where both trained heavily, they tie
   (18.3 each).
 * τ=0.1 put 2.5× more useful training signal on levels 15–17 than the control (20,642 vs 8,268 problems
   that taught something).
@@ -219,8 +226,8 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 * Cost: easy 83.9% vs 85.3% (control) and 85.5% (starting model); medium 46.7% vs 49.1%. Same in every seed.
   Solved-at-least-once unchanged.
 * The control has no such cost, because 57% of its training stays on levels 11–14.
-* **Next:** targets 0.15 / 0.2, a climb that keeps some 11–14 problems in every batch, 200-step runs, the
-  bandit fix.
+* **Next:** targets 0.15 / 0.2 (a test of the stall law), a climb that keeps some 11–14 problems in every
+  batch, 200-step runs, the bandit fix.
 
 ---
 
@@ -228,6 +235,7 @@ margin instead. Keep it as a backup only: leading with it would overstate a gap 
 
 | title | content |
 |---|---|
+| How adaptive is τ=0.1? Stall law, steps climbing vs stalled, rise per level | docs/results_seeds.md §6 |
 | Easy/medium reliability: seed by seed | table from docs/results_seeds.md §4 (per-seed pass@1, paired CIs, 6/6 and 9/9 seed pairs) |
 | All arms, all test sets | `results/method_comparison.png`; docs/results_seeds.md §1 |
 | Paired tests, full table | docs/results_seeds.md §2 (both levels 18–20 and 15–20) |

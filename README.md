@@ -12,8 +12,8 @@ of operations (op 2–20). Its key finding: RL (GRPO) teaches the model genuinel
 when training sits at the model's **edge of competence**, meaning problems it sometimes solves and
 sometimes fails. The authors pick that band once (op 11–14) and keep it fixed for the whole run.
 But the edge moves as the model learns, so a band that is right at step 0 is too easy later.
-**Our extension** replaces the fixed band with samplers that track the moving edge: a threshold rule,
-a bandit, and a uniform-random control. We ask whether this creates new ability (problems that go from
+**Our extension** replaces the fixed band with samplers that set each batch's difficulty from the model's
+measured success rates (a threshold rule and a bandit), plus uniform-random controls. We ask whether this creates new ability (problems that go from
 never solved to sometimes solved) or only makes the model more reliable on what it could already do.
 
 ## Why it matters
@@ -36,7 +36,7 @@ spent, nothing learned. So what matters is where the model is *right now*, and t
 `outputs/runs/fixed_band_s{0,1}/edge_speed.csv`)
 
 By step 50, op 15–16 are where the model sometimes succeeds and sometimes fails, which is exactly the regime
-GRPO learns from. A fixed band keeps spending the budget on op 11–14 instead. A sampler that follows the edge
+GRPO learns from. A fixed band keeps spending the budget on op 11–14 instead. An adaptive sampler
 can move there.
 
 **Step 0 is a snapshot.** Here is the base model before any training (Gate 1, 200 problems × 128 samples
@@ -97,10 +97,12 @@ Table: `results/base_model_p_by_level.csv`, `results/informative_fraction_by_lev
   there, but 97% of those groups had zero gradient; sign test p = 0.002) and 6 for the fixed band. A control
   that samples τ=0.1's range (op 11–17) uniformly from step 0 gets 86.3 ± 2.1, i.e. 81% of τ=0.1's gain: the
   right range is most of the win, the schedule adds +8.7 problems (p = 0.017), and τ=0.1 is what found the
-  range. τ=0.5 (40% informative groups) learns nothing new; the bandit (40.7 ± 3.5) ends below the fixed band
-  ([docs/bandit_analysis.md](docs/bandit_analysis.md)). Cost: τ=0.1's easy pass@1 is 1.5 points lower,
-  lower than the fixed band's and the control's,
-  consistently across seeds; pass@128 is unchanged. The seed-0 write-up is kept in
+  range. τ=0.1 is adaptive mainly early: it climbs op 11 → 17 in the first 45–54 steps and then stays at op 17,
+  the first level whose success rate stays below its 0.2 move-up trigger. This *stall law* predicts the final
+  level of all six threshold runs ([docs/results_seeds.md](docs/results_seeds.md) §6). τ=0.5 (40% informative
+  groups) learns nothing new; the bandit (40.7 ± 3.5) ends below the fixed band
+  ([docs/bandit_analysis.md](docs/bandit_analysis.md)). Cost: τ=0.1's easy pass@1 is 1.5 points lower than the
+  fixed band's and the control's, consistently across seeds; pass@128 is unchanged. The seed-0 write-up is kept in
   [docs/results_seed0.md](docs/results_seed0.md) for its figures and per-run detail.
 * **Four samplers** (`samplers/core.py`): fixed band, uniform random, threshold, bandit. They plug into verl's
   existing curriculum hook, so the training code itself is unchanged. They are tested on a simulated model

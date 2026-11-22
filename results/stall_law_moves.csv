@@ -1,0 +1,25 @@
+run,tau,trigger,step,from,to,p_two_steps_before_move,steps_at_from_level
+threshold_tau1_s0,0.1,0.2,2,11,12,0.504 0.52,2
+threshold_tau1_s0,0.1,0.2,4,12,13,0.379 0.419,2
+threshold_tau1_s0,0.1,0.2,8,13,14,0.233 0.261,4
+threshold_tau1_s0,0.1,0.2,16,14,15,0.239 0.244,8
+threshold_tau1_s0,0.1,0.2,23,15,16,0.204 0.224,7
+threshold_tau1_s0,0.1,0.2,52,16,17,0.203 0.203,29
+threshold_tau1_s1,0.1,0.2,2,11,12,0.474 0.511,2
+threshold_tau1_s1,0.1,0.2,4,12,13,0.323 0.368,2
+threshold_tau1_s1,0.1,0.2,8,13,14,0.238 0.232,4
+threshold_tau1_s1,0.1,0.2,16,14,15,0.229 0.236,8
+threshold_tau1_s1,0.1,0.2,22,15,16,0.203 0.207,6
+threshold_tau1_s1,0.1,0.2,45,16,17,0.216 0.207,23
+threshold_tau1_s2,0.1,0.2,2,11,12,0.492 0.493,2
+threshold_tau1_s2,0.1,0.2,4,12,13,0.337 0.389,2
+threshold_tau1_s2,0.1,0.2,7,13,14,0.206 0.224,3
+threshold_tau1_s2,0.1,0.2,16,14,15,0.232 0.264,9
+threshold_tau1_s2,0.1,0.2,25,15,16,0.213 0.228,9
+threshold_tau1_s2,0.1,0.2,54,16,17,0.205 0.207,29
+threshold_tau3_s0,0.3,0.4,2,11,12,0.504 0.513,2
+threshold_tau3_s0,0.3,0.4,5,12,13,0.425 0.429,3
+threshold_tau3_s0,0.3,0.4,25,13,14,0.409 0.41,20
+threshold_tau3_s1,0.3,0.4,2,11,12,0.474 0.515,2
+threshold_tau3_s1,0.3,0.4,6,12,13,0.423 0.45,4
+threshold_tau3_s1,0.3,0.4,23,13,14,0.403 0.418,17

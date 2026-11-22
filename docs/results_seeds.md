@@ -27,7 +27,8 @@ Files: `results/seeds_by_set.csv`, `results/seeds_hard_levels.csv`, `results/see
   gradient). The bandit reached them only through ε-exploration (5,423 groups, 3 with a nonzero gradient).
   τ=0.1, τ=0.3, τ=0.5, the fixed band and the control never saw those levels.
 * **τ=0.1's path is the same in all three seeds:** op 11 → 14 by step 7–8, op 15 at step 16, op 16 at
-  step 22–25, op 17 at step 45–54, then op 17 to the end (batch p at op 17 ≈ 0.17, below the 0.2 move-up bound).
+  step 22–25, op 17 at step 45–54, then op 17 to the end, 46–55% of the run (batch p at op 17 ≈ 0.17, below
+  the 0.2 move-up trigger; §6).
 * **Where the gradient went** (informative groups per run, mean over seeds): op 15–17: τ=0.1 20,642, control
   8,268, uniform 2,300, bandit 161, fixed band / τ=0.3 / τ=0.5 0. op 11–14: control 21,073, τ=0.1 4,654.
 
@@ -86,12 +87,14 @@ the schedule. **We chose that range by looking at where τ=0.1 went**; nobody ha
   excludes zero (+0.7 to +7.3). On the whole hard set it is (17 vs 5 problems, p = 0.017).
 * **Where the schedule's margin sits, per level** (newly solved, τ=0.1 vs control): op 15 29.0 vs 26.3,
   op 16 20.0 vs 17.7, op 17 18.3 vs 18.3, op 18 15.7 vs 14.3, op 19 9.0 vs 8.0, op 20 3.0 vs 1.7. The gap is at
-  the levels τ=0.1 trained *when they were at the edge* (op 15–16) and carries one to three problems per
-  level beyond. At op 17, where both trained heavily, they are equal.
+  the levels τ=0.1 trained while it was still climbing (op 15–16, steps 16–54) and carries one to three
+  problems per level beyond. At op 17, where both trained heavily, they are equal.
 * **The control gets this with less concentration.** τ=0.1 put 2.5× more informative groups on op 15–17
   (20,642 vs 8,268). The control has the higher overall informative share (28.6% vs 24.7%) because 3/7 of
   its batch is op 11–14, which stays learnable.
-* **What the adaptive method contributes is finding the range.** The paper's hand-picked band (op 11–14)
+* **What the adaptive method contributes is finding the range.** It does not track the edge for the whole
+  run: it climbs while levels are learnable and stops at op 17, the first level whose success rate stays below
+  its 0.2 trigger (§6). The paper's hand-picked band (op 11–14)
   gets 48 hard problems. The range τ=0.1 found on its own gets 86 when sampled uniformly, and 95 with
   τ=0.1's schedule. Without τ=0.1 we would not have known to try op 11–17: it is the paper's band plus
   three levels the base model cannot solve at all (p = 0 at op 15–17, step 0).
@@ -140,3 +143,91 @@ the arms that keep training near the base of the range. The control has no such 
    small reliability cost on easier sets.
 4. **The adaptive method's contribution is finding the range without being told.** The range it found
    (op 11–17) beats the paper's hand-picked band by 38 hard problems even without the schedule.
+5. **Stall law** (§6, all 6 threshold runs): a threshold arm climbs while the trained level can reach its
+   move-up trigger τ + δ and stops at the first level whose success rate stays below it. τ=0.1 is therefore
+   adaptive in the first half of the run only (46–55% of its steps at op 17). The law is the hypothesis for
+   the January τ = 0.15 and 0.2 runs.
+
+## 6. How adaptive is τ=0.1? The stall law (2026-11-22)
+
+From existing logs only, no new runs: `eval/stall_law.py` → `results/stall_law.csv`, `stall_law_moves.csv`,
+`stall_law_segments.csv`, `stall_law_plateaus.csv`, `stall_law_tracking.csv`. "Batch p" is the success rate in
+the training batch at the level being trained (training reward, T = 1). A threshold arm's batch is 100% one
+level, 6,144 answers per step.
+
+**Stall law: a threshold arm climbs while the level it trains can reach its move-up trigger h = τ + δ, and
+stops at the first level whose success rate stays below h for the rest of the run.** It holds in all six
+threshold runs, with one caveat for τ=0.1 (below).
+
+| run | trigger h | stopped at | reached at step | steps there | batch p there, last 20 steps | max batch p there | steps above h there (longest run; a move needs 2) | slope, last 30 steps (Δp per 10 steps) |
+|---|---|---|---|---|---|---|---|---|
+| τ=0.1 s0 | 0.2 | op 17 | 52 | 48 | 0.178 ± 0.010 | 0.195 | 0 (0) | +0.009 |
+| τ=0.1 s1 | 0.2 | op 17 | 45 | 55 | 0.176 ± 0.010 | 0.194 | 0 (0) | +0.007 |
+| τ=0.1 s2 | 0.2 | op 17 | 54 | 46 | 0.174 ± 0.010 | 0.206 | 1 (1) | +0.006 |
+| τ=0.3 s0 | 0.4 | op 14 | 25 | 75 | 0.369 ± 0.015 | 0.401 | 1 (1) | +0.004 |
+| τ=0.3 s1 | 0.4 | op 14 | 23 | 77 | 0.373 ± 0.013 | 0.406 | 1 (1) | +0.002 |
+| τ=0.5 s0 | 0.6 | op 11 | 0 | 100 | 0.588 ± 0.017 | 0.629 | 8 (1) | +0.005 |
+
+**Independent check.** Ceilings measured in the arms that train several levels at once (fixed band s0–s1,
+control s0–s2; batch p over their last 20 steps): op 11 0.57, op 12 0.54, op 13 0.44, op 14 0.35, op 15 0.31,
+op 16 0.21, op 17 0.15 (still rising). The first level below each trigger is op 11 for h = 0.6, op 14 for
+h = 0.4 and op 17 for h = 0.2. Given only other arms' data, the law predicts every threshold arm's final level.
+
+* **τ=0.5 and τ=0.3: confirmed.** Their final levels are flat (slope ≤ 0.005 per 10 steps) and below the
+  trigger: τ=0.5 by 0.01 (0.59 vs 0.6; above it on 8 single steps, never twice in a row) and τ=0.3 by 0.03
+  (0.37 vs 0.4). τ=0.3 only just passed op 13: 0.40–0.42 after 17–20 steps, against a ceiling of 0.44.
+* **τ=0.1: confirmed as stated, not as a ceiling.** It stopped at op 17 in all three seeds at 0.17–0.18, and
+  was never above 0.2 twice in a row. But op 17 was still rising, by 0.006–0.009 per 10 steps over the last
+  30 steps (the control's op 17 rises too). At that rate it would cross 0.2 around step 125. Within 100 steps,
+  "op 17's ceiling is below 0.2" and "op 17 rises too slowly to reach 0.2 in time" cannot be told apart; a
+  200-step run can. op 16 was a near-stall too: it crossed 0.2 only after 23–29 steps, at 0.20–0.22, against
+  an independent ceiling of 0.21.
+* **Known-side memory did not cause the stalls.** It refused 0–1 moves per run, none at the final level, and
+  the final level never had the two consecutive measurements above h that a move needs.
+
+**How much of the run was adaptive.**
+
+| arm | steps spent changing level (steps before reaching the final level) | steps at the final level | share of the run at the final level |
+|---|---|---|---|
+| τ=0.1 | 52, 45, 54 | 48, 55, 46 | **46–55%** |
+| τ=0.3 | 25, 23 | 75, 77 | **75–77%** |
+| τ=0.5 | 0 | 100 | 100% |
+
+The climb also slowed level by level. τ=0.1's batch p rose, per 10 steps of training at that level, by
+0.31–0.32 at op 14, 0.12–0.17 at op 15, 0.03–0.05 at op 16 and 0.008–0.012 at op 17
+(`results/stall_law_segments.csv`). Levels 11 → 15 took 16 steps, op 16 took 23–29 and op 17 the rest. **τ=0.1
+is fully adaptive for about its first sixth, slowly adaptive until step 45–54, and not adaptive at all for
+the second half of the run.**
+
+**This qualifies the learning-curve finding** (docs/bandit_analysis.md §6). At op 16–17 τ=0.1 trained at p ≈
+0.11–0.20, the range where op 13–15 rose fastest, yet p rose 10–40× more slowly than at op 13–14. The
+steepest-point estimate p ≈ 0.10–0.21 comes from op 13–15. At harder levels, a success rate in that range
+does not by itself mean fast learning.
+
+**When did τ=0.1 pull ahead of the control? A first look from logs** (tracking set: 32 problems × 8 answers
+per level at T = 1, every 10 steps; mean of 3 seeds; τ=0.1 / control):
+
+| step | 20 | 30 | 50 | 80 | 100 |
+|---|---|---|---|---|---|
+| op 15 | 0.19 / 0.05 | 0.22 / 0.19 | 0.21 / 0.26 | 0.24 / 0.25 | 0.28 / 0.29 |
+| op 16 | 0.07 / 0.01 | 0.17 / 0.08 | 0.24 / 0.18 | 0.27 / 0.26 | 0.30 / 0.28 |
+| op 17 | 0.01 / 0.00 | 0.04 / 0.01 | 0.07 / 0.05 | 0.13 / 0.09 | 0.18 / 0.11 |
+| op 18–20 | 0.000 / 0.000 | 0.011 / 0.002 | 0.019 / 0.012 | 0.039 / 0.018 | 0.044 / 0.032 |
+
+τ=0.1's lead on op 15–16 opens while it climbs (steps 20–50) and is gone in this measure by steps 80–100. Its
+lead on op 17 grows during the stall, while it trains op 17 exclusively. On op 18–20 it leads from step 30 on,
+by a small margin that does not clearly grow or shrink. The tracking p is a noisy T = 1 success rate on 32
+problems per level, not the newly-solved count. The pass@128 evaluation of the step-25/50/75 checkpoints is
+proposed and **not yet run** (needs approval).
+
+**Hypothesis for the January τ = 0.15 and 0.2 runs: the trigger h, not τ, sets the final level.** From the
+ceilings above, h = 0.20 → op 17 (as τ=0.1), h = 0.25 → op 16, and h = 0.30 → op 15–16 (op 15's ceiling of
+0.31 is within noise of 0.30).
+* With δ = 0.1, τ = 0.15 (h = 0.25) and τ = 0.2 (h = 0.30) should stop at op 15–16. They would train a
+  narrower range than τ=0.1 and, if the range drives the gain, newly solve fewer hard problems.
+* With the δ = 0.05 the January plan proposed, τ = 0.15 has h = 0.20, the same trigger as τ=0.1, and should
+  reproduce τ=0.1's path.
+* The arm predicted to climb past op 17 is one with a trigger below 0.2, e.g. h = 0.15; τ=0.1's own p at op 17
+  was 0.17–0.18.
+
+Each prediction is checkable from the sampler log alone (final level and arrival step).
