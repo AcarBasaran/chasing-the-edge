@@ -114,8 +114,10 @@ with a 5-step mean and the rate measured over ±5 steps. Runs: fixed band seeds 
 
 What this means:
 
-* **τ=0.1's target is where learning is fastest, which makes it a principled choice, not a lucky one.** The
-  steepest rise is at p ≈ 0.10–0.21 for every level that starts at p ≈ 0, at 30–50% of the level's plateau.
+* **τ=0.1's target band contains the p where op 13–15 learned fastest, but at harder levels the same p
+  learns far more slowly.** The steepest rise is at p ≈ 0.10–0.21 for every level that starts at p ≈ 0 and has
+  a clear peak here (op 13–15), at 30–50% of the level's plateau. At op 16–17, τ=0.1 itself trained at
+  p ≈ 0.11–0.20 and p rose only 0.01–0.05 per 10 steps, 10–40× slower than op 13–14 (docs/results_seeds.md §6).
   That is τ=0.1's target band [0.05, 0.2]. Of the three τ we ran, τ=0.1 is the one whose band contains the
   measured peak, and it is the one that won. (τ between 0.1 and 0.3 was not run, so "best of the three
   tested, and predicted by the curve", not "the optimum". τ = 0.15 and 0.2 are January work.)
@@ -141,12 +143,14 @@ locked on *sooner* (step 10) and onto an *easier* level (op 12). op 15+ again go
 greedy choice never went beyond op 14. Faster measurement just let self-reward act earlier, on whichever level
 had risen first. So self-reward is the primary mechanism. Lag makes it worse but does not explain it on its own.
 
-τ=0.1 avoids both. It reads the *level* of p, not its change, and it moves on as soon as p > 0.2, before the
-level it trained on has had time to reward itself.
+τ=0.1 avoids self-reward: it reads the *level* of p, not its change, and moves on as soon as p > 0.2 twice in
+a row. It does not avoid stalling. At op 17 its p stayed below 0.2 for the last 46–55 steps of the run, so it
+stopped moving (docs/results_seeds.md §6, the stall law).
 
 The three objectives map onto three parts of the same S-curve: **gradient efficiency (τ=0.5) sits on the
-plateau, headroom (τ=0.1) sits on the steep part, and learning speed (bandit) is held behind the edge by its
-own self-reward, made worse by lag.**
+plateau, headroom (τ=0.1) climbs through the steep part of op 13–15 and then stalls at op 17, where p sits in
+the same range but rises about 0.01 per 10 steps, and learning speed (bandit) is held behind the edge by its own
+self-reward, made worse by lag.**
 
 ## 7. Fixes (future work, January; not run)
 

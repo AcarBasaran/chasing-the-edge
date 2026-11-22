@@ -1,0 +1,7 @@
+run,tau,trigger_up,start_level,final_level,arrival_step,steps_climbing,steps_at_final,share_at_final,n_moves,moves_refused_by_memory,plateau_p_last20,sd_last20,max_p_at_final,steps_above_trigger_at_final,longest_streak_above_trigger,slope_last30_per10steps,plateau_minus_trigger
+threshold_tau1_s0,0.1,0.2,11,17,52,52,48,0.48,6,0,0.178,0.01,0.195,0,0,0.0094,-0.022
+threshold_tau1_s1,0.1,0.2,11,17,45,45,55,0.55,6,1,0.176,0.01,0.194,0,0,0.0074,-0.024
+threshold_tau1_s2,0.1,0.2,11,17,54,54,46,0.46,6,1,0.174,0.01,0.206,1,1,0.0062,-0.026
+threshold_tau3_s0,0.3,0.4,11,14,25,25,75,0.75,3,0,0.369,0.015,0.401,1,1,0.0043,-0.031
+threshold_tau3_s1,0.3,0.4,11,14,23,23,77,0.77,3,0,0.373,0.013,0.406,1,1,0.0018,-0.027
+threshold_tau5_s0,0.5,0.6,11,11,0,0,100,1.0,0,0,0.588,0.017,0.629,8,1,0.0047,-0.012

@@ -148,8 +148,8 @@ informative (measured on the groups GRPO trained):
 | op14 | 0% (p=0.00) | 29% (p=0.23) | 34% (p=0.33) | 31% (p=0.34) | 29% (p=0.34) | 31% (p=0.34) |
 
 The fixed band's real limitation is the other end: **it never moves past op14 while op15–16 become
-learnable** (tracking p at step 100: op15 0.25, op16 0.13). The samplers that follow the edge train exactly
-there. Full table, including op11–12: docs/gate1.md. All levels 9–17 from checkpoint re-evaluation:
+learnable** (tracking p at step 100: op15 0.25, op16 0.13). τ=0.1 trains
+there (op 15–16 while climbing, then op 17 for the rest of the run; results_seeds.md §6). Full table, including op11–12: docs/gate1.md. All levels 9–17 from checkpoint re-evaluation:
 `results/informative_over_training.png`.
 
 ## 5. Costs and side effects

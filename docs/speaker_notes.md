@@ -12,9 +12,9 @@ seeds; details in docs/results_seeds.md.
 | 4 | The edge moves | "Training on 11 to 14 makes 15 to 17 learnable, but the fixed band never goes there." | 0:40 |
 | 5 | Three ways to chase the edge | "We built three samplers that aim at three different things: the most usable signal, the fastest improvement, and the most room to improve." | 0:50 |
 | 6 | Baseline reproduces | "Our version of the paper's method matches their released model within a point everywhere, so every comparison is against a faithful baseline." | 0:25 |
-| 7 | Where samplers went | "τ=0.5 never moves, the bandit gets stuck at 12 to 14, τ=0.3 climbs through the paper's band and stops at its top, and τ=0.1 climbs to 17, in every seed." | 0:35 |
+| 7 | Where samplers went | "τ=0.5 never moves, the bandit gets stuck at 12 to 14, τ=0.3 climbs through the paper's band and stops at its top, and τ=0.1 climbs to 17; each stops at the first level it can't push past its move-up point, so τ=0.1 adapts for the first half of the run and then stays put." | 0:35 |
 | 8 | Signal ≠ learning | "Forty percent of problems teaching something, zero new problems; twenty-five percent, ninety-five new problems." *(say the numbers, then pause)* | 0:30 |
-| 9 | Where learning is fastest | "A level improves fastest when the model solves it ten to twenty percent of the time and stops at about half, so τ=0.1 trains in the fast stretch and τ=0.5 trains where nothing is left, which corrects our own proposal." | 0:55 |
+| 9 | Where learning is fastest | "A level improves fastest when the model solves it ten to twenty percent of the time and stops at about half, so τ=0.1 climbs through that fast stretch while it lasts and τ=0.5 trains where nothing is left, which corrects our own proposal." | 0:55 |
 | 10 | The bandit | "Rewarding improvement fails because the level you train improves *because* you train it, so the bandit keeps rewarding its own choice and never moves on." | 0:50 |
 | 11 | Room to improve wins | "On the three hardest levels, which τ=0.1 never trained on, it solves nearly 28 of 102 new problems; uniform sampling, which did train there, solves 20." | 0:50 |
 | 12A | The range is most of the win | "Training uniformly on the levels τ=0.1 found gets 81% of its gain: the paper's band gets 48, the range τ=0.1 found gets 86, the climb takes it to 95. The contribution is finding that range." | 1:10 |
@@ -28,7 +28,14 @@ Total ≈ 9:50. If short on time, cut slide 6 to one sentence on slide 5 and dro
 It shows the *range* matters most, and τ=0.1 is how we got the range. Nobody would have picked 11–17 in
 advance: three of those levels are ones the starting model never solves, and the paper's own choice (11–14)
 gets 48 against 86. The climb adds a further +8.7 hard problems (better on 17 problems, worse on 5,
-p = 0.017), but that is the smaller part, and we say so.
+p = 0.017), but that is the smaller part, and we say so. And τ=0.1 does not track the edge all the way: it
+climbs for the first 45–54 steps and then stays at 17, the first level it can't push past 0.2.
+
+**"Does τ=0.1 really follow the edge?"**
+For the first half of the run. It climbs while the level it trains can pass its move-up point of 0.2, and
+stops at the first level that can't: level 17, for the last 46–55% of the run, in every seed. The same rule
+explains where τ=0.3 (14) and τ=0.5 (11) stop. Its value is the range it finds on the way up. Whether 17 is a
+real ceiling or just slow is what the 200-step runs will tell us.
 
 **"Three seeds: is τ=0.1 vs uniform real, or noise?"**
 It holds every way we checked. Compared problem by problem over 3 seeds each, τ=0.1 solves 15 problems more
