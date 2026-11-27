@@ -18,9 +18,16 @@ merge=$(sbatch --parsable --job-name="merge-${RUN_ID}" --dependency="afterok:${T
 ev=$(MODEL="${R}/hf/step${STEP}" RUN_DIR="${R}/eval" \
      sbatch --parsable --job-name="eval-${RUN_ID}" --dependency="afterok:${merge}" --array=19-21 \
      slurm/gate1_eval.sbatch)
+# Default (every run since 2026-11-27, fixed reward): column B analysis, slurm/analyse_fixed.sh.
+# PAPER_REWARD=1 (a run trained with the paper's reward, as the 17 runs before 2026-11-27): the column-A
+# analysis below, scored with the paper's parser (--upstream-parser).
+if [[ "${PAPER_REWARD:-0}" != 1 ]]; then
+an=$(sbatch --parsable --job-name="analyse-${RUN_ID}" --dependency="afterok:${ev}" slurm/run_cpu.sbatch \
+     "bash slurm/analyse_fixed.sh ${RUN_ID} ${STEP}")
+else
 an=$(sbatch --parsable --job-name="analyse-${RUN_ID}" --dependency="afterok:${ev}" slurm/run_cpu.sbatch \
      "mkdir -p results/per_problem && \
-      \$EDGE_PY eval/export_base_per_problem.py --run-dir ${R}/eval --ckname step${STEP} --val-levels none \
+      \$EDGE_PY eval/export_base_per_problem.py --run-dir ${R}/eval --ckname step${STEP} --val-levels none --upstream-parser \
           --out results/per_problem/${RUN_ID}.csv && \
       \$EDGE_PY eval/newly_solved.py && \$EDGE_PY eval/compare_methods.py && \
       `# parse_verl_log exits 1 when the level never changes (a Gate-2 smoke check); for a full run that is a result (tau=0.5), not a failure` \$EDGE_PY eval/parse_verl_log.py ${R}/train.log --csv ${R}/timing.csv --sampler-log ${R}/sampler_log.jsonl || true; \
@@ -29,5 +36,6 @@ an=$(sbatch --parsable --job-name="analyse-${RUN_ID}" --dependency="afterok:${ev
           --out results/sampler_levels.png; \
       \$EDGE_PY eval/untrained_levels.py && \$EDGE_PY eval/aggregate_seeds.py; \
       bash slurm/drain_queue.sh || true")
+fi
 echo "${RUN_ID}: train ${TRAIN_JOB} -> merge ${merge} -> eval ${ev} (array 19-21) -> analyse ${an}" \
   | tee -a "${EDGE_SCRATCH}/outputs/post_run_chains.txt"
