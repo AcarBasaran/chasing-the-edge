@@ -1,0 +1,19 @@
+# The paper's method (uniform over op 11-14, = their released rl/op11-14_uniform setup) trained with the FIXED
+# strict reward (reward/reward_fn_fixed.py, eval/parser_fix.py). The baseline for the two other fixed-reward
+# runs (threshold_tau1_fixedreward, window_next_fixedreward): all three differ from each other only in
+# data.sampler, and from the old runs only in the reward.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: fixed_band
+    method_kwargs: {levels: [11, 12, 13, 14]}
+custom_reward_function:
+  path: ${oc.env:EDGE_REPO}/reward/reward_fn_fixed.py
+  name: compute_score_with_step_process

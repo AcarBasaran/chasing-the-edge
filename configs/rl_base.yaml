@@ -88,8 +88,12 @@ data:
     seed: ${data.seed}
     log_path: ${trainer.default_local_dir}/../sampler_log.jsonl
 
+# Reward: the upstream strict reward with the variable-letter parser fix (eval/parser_fix.py), CANONICAL
+# since 2026-11-27. Every run before that date (17 runs, docs/results_seeds.md) used the paper's
+# verl/reward_fn.py, whose parser zeroes most correct forward-reverse (equation) solutions; their
+# resolved_config.yaml records it. To reproduce them, override custom_reward_function.path=verl/reward_fn.py.
 custom_reward_function:
-  path: verl/reward_fn.py
+  path: ${oc.env:EDGE_REPO}/reward/reward_fn_fixed.py
   name: compute_score_with_step_process
   reward_kwargs:
     answer_weight: 1.0

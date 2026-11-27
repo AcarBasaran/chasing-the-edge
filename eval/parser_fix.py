@@ -1,4 +1,5 @@
-"""Fix for a variable-letter bug in the upstream solution parser (found 2026-11-27).
+"""Fix for a variable-letter bug in the upstream solution parser (found 2026-11-27). CANONICAL since 2026-11-27:
+strict_score.py applies it unless EDGE_FIXED_PARSER=0, and configs/rl_base.yaml trains with it.
 
 THE BUG
 upstream utils/solution_dependency_graph.py::SolutionParser._collect_dependencies finds the
@@ -30,7 +31,7 @@ touched (they never depended on letter choice).
 
 Usage
     from parser_fix import apply; apply()          # patches the class in place, idempotent
-    EDGE_FIXED_PARSER=1  -> eval/strict_score.py applies it at import
+    eval/strict_score.py applies it at import (EDGE_FIXED_PARSER=0 keeps the upstream parser)
     reward/reward_fn_fixed.py applies it for verl training
 """
 

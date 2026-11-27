@@ -34,9 +34,9 @@ if str(UPSTREAM) not in sys.path:
 from utils.solution_dependency_graph import DependencyGraphData, SolutionParser  # noqa: E402
 from utils.text_preprocess import compose_text  # noqa: E402
 
-# EDGE_FIXED_PARSER=1: score with the variable-letter fix (eval/parser_fix.py). Default off, so
-# every existing number keeps the paper's (upstream) scorer unless asked.
-if os.environ.get("EDGE_FIXED_PARSER", "0") == "1":
+# Scorer: the variable-letter fix (eval/parser_fix.py) is the CANONICAL scorer since 2026-11-27.
+# EDGE_FIXED_PARSER=0 scores with the paper's upstream parser (only for comparison with the paper).
+if os.environ.get("EDGE_FIXED_PARSER", "1") == "1":
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import parser_fix  # noqa: E402
     parser_fix.apply()
