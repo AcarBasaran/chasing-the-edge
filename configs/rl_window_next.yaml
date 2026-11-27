@@ -1,0 +1,16 @@
+# Arm (prototype, 2026-11-27): ROLLING WINDOW 25/50/25, centre moves UP when the level above it becomes
+# learnable (p at k+1 >= 0.05 for 2 measurements), down when p at k < 0.025. Targets the stall law:
+# tau=0.1 stopped at op 17 because p_17 never reached 0.2, while op 18 was already at p ~0.06-0.08.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: window
+    method_kwargs: {start_level: 11, weights: [0.25, 0.5, 0.25], move: next, next_floor: 0.05,
+                    patience: 2, min_samples: 64}

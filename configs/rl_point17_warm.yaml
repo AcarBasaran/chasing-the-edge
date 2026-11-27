@@ -1,0 +1,13 @@
+# Control for rl_window17_warm.yaml: same warm start (threshold_tau1 step 50), op 17 only, 50 steps.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: fixed_band
+    method_kwargs: {levels: [17]}
