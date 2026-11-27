@@ -4,7 +4,7 @@
 # array tasks never race on the same gold dir.
 #   sbatch --wait slurm/run_cpu.sbatch 'bash slurm/build_gold.sh easy medium hard'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 GOLD_ROOT="${GOLD_ROOT:-${EDGE_SCRATCH}/outputs/gate1_base_eval/gold}"
 cd "${UPSTREAM}"; export PYTHONPATH="${UPSTREAM}:${PYTHONPATH:-}"
 for SET in "$@"; do

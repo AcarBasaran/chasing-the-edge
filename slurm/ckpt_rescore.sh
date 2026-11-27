@@ -4,7 +4,7 @@
 # that dir before scoring, so only the last-scored step survived. Scores all three into the same dir, no clearing.
 #   sbatch --cpus-per-task=32 slurm/run_cpu.sbatch 'bash slurm/ckpt_rescore.sh'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 GOLD="${EDGE_SCRATCH}/outputs/gate1_base_eval/gold/test_hard"
 cd "${UPSTREAM}"; export PYTHONPATH="${UPSTREAM}:${PYTHONPATH:-}"
 for r in threshold_tau1_s0 threshold_tau1_s1 threshold_tau1_s2 uniform_11_17_s0 uniform_11_17_s1 uniform_11_17_s2; do

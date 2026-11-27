@@ -7,7 +7,7 @@
 # Outputs go to <run>/eval_ckpt_step<S>/ (one dir per step), NOT <run>/eval/: the scorer clears its graph dir first.
 # The 2026-11-22 run used one shared <run>/eval_ckpt/ and lost scores; slurm/ckpt_rescore.sh recovered them on CPU.
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 cd "${EDGE_REPO}"
 RUNS="threshold_tau1_s0 threshold_tau1_s1 threshold_tau1_s2 uniform_11_17_s0 uniform_11_17_s1 uniform_11_17_s2"
 STEPS="25 50 75"

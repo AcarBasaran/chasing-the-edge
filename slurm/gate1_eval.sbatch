@@ -31,7 +31,7 @@
 #SBATCH --output=/scratch/ebasaran22/chasing-the-edge/logs/%x-%A_%a.out
 
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 
 RUN_DIR="${RUN_DIR:-${EDGE_SCRATCH}/outputs/gate1_base_eval}"
 SAMPLE_K="${SAMPLE_K:-128}"

@@ -18,7 +18,7 @@
 #   bash slurm/stall_watchdog.sh --submit      start the chain (no-op if one is already running or queued)
 #   scancel -n stall-watchdog                  stop it
 set -uo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 cd "${EDGE_REPO}"
 STALL_MIN="${STALL_MIN:-30}"
 EVERY_MIN="${EVERY_MIN:-5}"

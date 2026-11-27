@@ -12,7 +12,7 @@
 #SBATCH --output=/scratch/ebasaran22/chasing-the-edge/logs/%x-%j.out
 
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 cd "${EDGE_REPO}"
 export TOKENIZERS_PARALLELISM=false
 echo "[run_cpu] host=$(hostname) cmd: $*"

@@ -7,7 +7,7 @@
 # if lines remain, resubmits itself as a CPU job to try again in 30 minutes.
 #   bash slurm/drain_queue.sh            (login node or compute node; only calls sbatch)
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 cd "${EDGE_REPO}"
 Q="${EDGE_SCRATCH}/outputs/pending_runs.txt"
 LIMIT=50; HEADROOM="${HEADROOM:-3}"; PER_RUN=6

@@ -7,7 +7,7 @@
 #   sbatch --gres=gpu:1 --cpus-per-task=8 --mem=48G --time=06:00:00 --job-name=inf-over-train \
 #       slurm/run_cpu.sbatch 'bash slurm/informative_over_training.sh fixed_band_s0 25 50 75 100'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 RUN_ID="${1:?run id}"; shift; STEPS=("$@")
 R="${EDGE_SCRATCH}/outputs/runs/${RUN_ID}"
 LEVELS=(9 10 11 12 13 14 15 16 17)

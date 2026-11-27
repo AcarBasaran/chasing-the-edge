@@ -13,7 +13,7 @@
 #SBATCH --output=/scratch/ebasaran22/chasing-the-edge/logs/%x-%j.out
 
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 cd "${EDGE_REPO}"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
 "${EDGE_PY}" -c "import torch, transformers; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'transformers', transformers.__version__)"

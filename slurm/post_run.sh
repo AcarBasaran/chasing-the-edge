@@ -8,7 +8,7 @@
 # Run on the login node: it only calls sbatch. Outputs: results/per_problem/<run_id>.csv, results/*.csv|png,
 # $EDGE_SCRATCH/outputs/runs/<run_id>/{hf,eval,edge_speed.*,timing.csv}, logs in $EDGE_SCRATCH/logs/.
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 RUN_ID="${1:?run id}"; TRAIN_JOB="${2:?training job id}"; STEP="${3:-100}"
 R="${EDGE_SCRATCH}/outputs/runs/${RUN_ID}"
 cd "${EDGE_REPO}"

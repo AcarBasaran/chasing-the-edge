@@ -18,7 +18,7 @@
 #SBATCH --output=/scratch/ebasaran22/chasing-the-edge/logs/%x-%j.out
 
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 set +u; module load git 2>/dev/null || true; set -u   # git.txt records the repo/upstream hashes
 ARM="${1:?arm}"; SEED="${2:?seed}"; shift 2
 CONFIG="rl_${ARM}"

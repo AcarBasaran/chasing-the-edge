@@ -4,7 +4,7 @@
 # PYTHONPATH (upstream's setup.py sits inside the package dir; not installed).
 #   sbatch --wait --time=01:00:00 slurm/run_cpu.sbatch 'bash slurm/install_verl_deps.sh'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 
 CONS="${EDGE_SCRATCH}/constraints.txt"
 cat > "${CONS}" <<EOF

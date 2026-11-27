@@ -3,7 +3,7 @@
 #   sbatch --wait slurm/run_cpu.sbatch 'bash slurm/merge_ckpt.sh <run_id> <step>'
 # -> $EDGE_SCRATCH/outputs/runs/<run_id>/hf/step<step>/   (tokenizer copied from the base model)
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 RUN_ID="${1:?run id}"; STEP="${2:?step}"
 RUN_DIR="${EDGE_SCRATCH}/outputs/runs/${RUN_ID}"
 SRC="${RUN_DIR}/ckpt/global_step_${STEP}/actor"; DST="${RUN_DIR}/hf/step${STEP}"

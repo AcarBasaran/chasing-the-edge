@@ -2,7 +2,7 @@
 # Resolve every arm config through Hydra (CPU only) and print the fields that must differ / must not.
 #   sbatch --wait slurm/run_cpu.sbatch 'bash slurm/check_rl_configs.sh'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 export PYTHONPATH="${UPSTREAM}:${EDGE_REPO}:${PYTHONPATH:-}"
 cd "${UPSTREAM}"
 OUT="${EDGE_SCRATCH}/outputs/cfgcheck"; mkdir -p "${OUT}"

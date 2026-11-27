@@ -8,7 +8,7 @@
 #   3. timing and edge-speed logs of the run
 #   bash slurm/analyse_fixed.sh <run_id> [step=100]     (via slurm/run_cpu.sbatch; slurm/post_run.sh queues it)
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 RUN_ID="${1:?run id}"; STEP="${2:-100}"
 R="${EDGE_SCRATCH}/outputs/runs/${RUN_ID}"
 D=results/per_problem_fixed

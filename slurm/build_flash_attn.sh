@@ -5,7 +5,7 @@
 #   sbatch --wait --job-name=c-flash --cpus-per-task=32 --mem=160G --time=03:00:00 \
 #          slurm/run_cpu.sbatch 'bash slurm/build_flash_attn.sh'
 set -euo pipefail
-source /home/ebasaran22/chasing-the-edge/slurm/env.sh
+source "${EDGE_REPO:-/home/ebasaran22/chasing-the-edge}/slurm/env.sh"   # pinned copy when EDGE_REPO is set (slurm/pin.sh)
 module load cuda/12.6.3 gnu12/12.4.0
 # env bin first: torch's cpp_extension needs `ninja` on PATH, else it silently builds one
 # file at a time (first attempt: 11/72 kernels in 31 min). CUDA 12.6 to match torch cu126.
