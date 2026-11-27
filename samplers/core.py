@@ -257,8 +257,138 @@ class Bandit(DifficultySampler):
                 "greedy": max(self.Q, key=self.Q.get)}
 
 
+class Window(DifficultySampler):
+    """Rolling window around a centre level k (TA suggestion, 2026-11-27).
+
+    Each prompt's level is k + offset, offset drawn with `weights` (default 25/50/25 over
+    k-1, k, k+1). At the ends of the level range the weights of the levels that exist are
+    renormalised (k = 20 -> op 19 1/3, op 20 2/3).
+
+    How k moves (`move`):
+      "none"   : static window, k never changes (a fixed band with uneven weights).
+      "center" : the Threshold rule applied to p at the centre level: up after `patience`
+                 measurements with p_k > hi = tau + delta, down after `patience` with
+                 p_k < lo = max(tau - delta, lo_floor_frac * tau). A down move is refused while
+                 the window's own fresh measurement of k-1 says k-1 is already too easy (> hi),
+                 which replaces Threshold's known-side memory.
+      "next"   : up after `patience` measurements with p_{k+1} >= next_floor, i.e. as soon as
+                 the level above has become learnable (the window measures it every step for
+                 free); down like "center". Aimed at the stall law: tau=0.1 stopped at op 17
+                 because p_17 never reached 0.2, not because op 18 was unlearnable.
+
+    Measurements are pooled per level until they have >= min_samples rollouts; pools
+    are cleared after a move.
+    """
+
+    def __init__(self, levels: Sequence[int] = ALL_LEVELS, start_level: int = 11,
+                 offsets: Sequence[int] = (-1, 0, 1), weights: Sequence[float] = (0.25, 0.5, 0.25),
+                 move: str = "center", tau: float = 0.1, delta: float = 0.1, next_floor: float = 0.05,
+                 patience: int = 2, min_samples: int = 64, lo_floor_frac: float = 0.5, seed: int = 0):
+        super().__init__(levels, seed)
+        if len(offsets) != len(weights) or not offsets:
+            raise ValueError("offsets and weights must have the same non-zero length")
+        if any(w < 0 for w in weights) or sum(weights) <= 0:
+            raise ValueError("weights must be non-negative with a positive sum")
+        if move not in ("none", "center", "next"):
+            raise ValueError(f"move must be none|center|next, got {move!r}")
+        self.offsets = tuple(int(o) for o in offsets)
+        self.weights = tuple(float(w) for w in weights)
+        self.move = move
+        self.tau, self.delta = float(tau), float(delta)
+        self.hi = min(tau + delta, 1.0)
+        self.lo = max(tau - delta, lo_floor_frac * tau)
+        self.next_floor = float(next_floor)
+        self.patience = int(patience)
+        self.min_samples = int(min_samples)
+        self.center = int(start_level)
+        if self.center not in self.levels:
+            raise ValueError(f"start_level {self.center} not in {self.levels}")
+        self._pool: dict[int, list[float]] = {}      # level -> [successes, n]
+        self.last_p: dict[int, float] = {}           # level -> latest pooled estimate (since last move)
+        self.up_streak = 0
+        self.down_streak = 0
+        self.moves = 0
+
+    def restrict_levels(self, available: Iterable[int]) -> None:
+        super().restrict_levels(available)
+        if self.center not in self.levels:
+            self.center = min(self.levels, key=lambda l: abs(l - self.center))
+
+    def window(self) -> tuple[list[int], list[float]]:
+        lv, w = [], []
+        for o, wt in zip(self.offsets, self.weights):
+            L = self.center + o
+            if L in self.levels and wt > 0:
+                lv.append(L)
+                w.append(wt)
+        tot = sum(w)
+        return lv, [x / tot for x in w]
+
+    def next_level(self) -> int:
+        lv, w = self.window()
+        return self.rng.choices(lv, weights=w, k=1)[0]
+
+    def update(self, level: int, success_rate: float, n: Optional[int] = None, probe: bool = False) -> None:
+        level = int(level)
+        n = self.min_samples if n is None else int(n)
+        if n <= 0 or self.move == "none":
+            return
+        acc = self._pool.setdefault(level, [0.0, 0])
+        acc[0] += float(success_rate) * n
+        acc[1] += n
+        if acc[1] >= self.min_samples:
+            self.last_p[level] = acc[0] / acc[1]
+            self._pool[level] = [0.0, 0]
+            if level == self._decision_level_up() or level == self.center:
+                self._decide(level)
+
+    def _decision_level_up(self) -> int:
+        return self.center + 1 if self.move == "next" else self.center
+
+    def _decide(self, level: int) -> None:
+        k = self.center
+        p_k = self.last_p.get(k)
+        if level == self._decision_level_up():
+            if self.move == "next":
+                up = self.last_p.get(k + 1, 0.0) >= self.next_floor
+            else:
+                up = p_k is not None and p_k > self.hi
+            self.up_streak = self.up_streak + 1 if up else 0
+            if up:
+                self.down_streak = 0
+        if level == k:
+            p_below = self.last_p.get(k - 1)
+            # "next" moves up as soon as p_{k+1} >= next_floor, so the new centre starts near
+            # next_floor; a down trigger at half of it leaves a hysteresis gap (no ping-pong).
+            lo = 0.5 * self.next_floor if self.move == "next" else self.lo
+            down = (p_k is not None and p_k < lo
+                    and not (p_below is not None and p_below > self.hi))
+            self.down_streak = self.down_streak + 1 if down else 0
+            if down:
+                self.up_streak = 0
+        idx = self.levels.index(k)
+        if self.up_streak >= self.patience and idx + 1 < len(self.levels):
+            self._move(self.levels[idx + 1])
+        elif self.down_streak >= self.patience and idx > 0:
+            self._move(self.levels[idx - 1])
+
+    def _move(self, new_center: int) -> None:
+        self.center = new_center
+        self.up_streak = self.down_streak = 0
+        self._pool.clear()
+        self.last_p.clear()
+        self.moves += 1
+
+    def state(self) -> dict:
+        lv, w = self.window()
+        return {"active": self.center, "window": {str(l): x for l, x in zip(lv, w)},
+                "last_p": {str(k): v for k, v in self.last_p.items()}, "lo": self.lo, "hi": self.hi,
+                "up_streak": self.up_streak, "down_streak": self.down_streak, "moves": self.moves}
+
+
 REGISTRY = {"fixed_band": FixedBand, "uniform_random": UniformRandom,
-            "threshold": Threshold, "bandit": Bandit}
+            "threshold": Threshold, "bandit": Bandit,
+            "window": Window}
 
 
 def make_sampler(method: str, **kwargs) -> DifficultySampler:

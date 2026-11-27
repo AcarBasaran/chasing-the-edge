@@ -1,0 +1,20 @@
+# Warm-start test of the TA's exact proposal (prototype, 2026-11-27): STATIC window op 16/17/18 at 25/50/25.
+# Start from threshold_tau1_s<seed> step 50 (merged HF checkpoint, the point where tau=0.1 reached op 17) and
+# train 50 more steps. Compare with rl_point17_warm.yaml (same start, op 17 only). Launch with e.g.
+#   RUN_TAG=warm50 sbatch slurm/rl_run.sbatch window17_warm 0 trainer.total_training_steps=50 \
+#       actor_rollout_ref.model.path=$EDGE_SCRATCH/outputs/runs/threshold_tau1_s0/hf/step50
+# NOTE: the reference model for the KL term becomes the step-50 model and Adam state restarts; both arms
+# of the warm test share this, so they are comparable to each other, not exactly to tau=0.1's own steps 50-100.
+# Do NOT start this from the base model: p = 0 at op 15-20 (0 of 128 samples), so there is no gradient.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: window
+    method_kwargs: {start_level: 17, weights: [0.25, 0.5, 0.25], move: none}

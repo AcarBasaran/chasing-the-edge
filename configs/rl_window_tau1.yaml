@@ -1,0 +1,16 @@
+# Arm (prototype, 2026-11-27): ROLLING WINDOW 25/50/25 over k-1, k, k+1 (TA suggestion), centre k moved by the
+# same threshold rule as rl_threshold_tau1 (tau=0.1, delta=0.1, trigger 0.2 on p at k, patience 2).
+# Only difference from threshold_tau1: half of each batch is the neighbours of k instead of k itself.
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - rl_base
+  - _self_
+
+data:
+  sampler:
+    method: window
+    method_kwargs: {start_level: 11, weights: [0.25, 0.5, 0.25], move: center, tau: 0.1, delta: 0.1,
+                    patience: 2, min_samples: 64}

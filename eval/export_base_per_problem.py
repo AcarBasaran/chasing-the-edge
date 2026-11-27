@@ -17,6 +17,11 @@ Also exports ANY checkpoint's eval run (same columns) -- used for the released R
 checkpoint, the T=1.0 base sweep and later our own checkpoints:
     $EDGE_PY eval/export_base_per_problem.py --run-dir <RUN_DIR> --ckname <model dir basename> \
         --out results/<name>_per_problem.csv [--val-levels 9-15] [--sets easy medium hard]
+
+--fixed-parser: re-score the kept generations with the variable-letter fix (eval/parser_fix.py), CPU only.
+c_eval and c_train then come from the fixed parser (the upstream graph results are ignored, so the
+upstream/ours agreement check is skipped and only printed). Write to a separate file, e.g.
+results/per_problem_fixed/<run_id>.csv, so the paper-scorer numbers stay as they are.
 """
 
 from __future__ import annotations
@@ -49,7 +54,15 @@ def main():
     ap.add_argument("--out", type=Path, default=REPO / "results" / "base_per_problem.csv")
     ap.add_argument("--val-levels", default="2-20", help="e.g. 2-20, 9-15, or 'none'")
     ap.add_argument("--sets", nargs="*", default=["easy", "medium", "hard"])
+    ap.add_argument("--fixed-parser", action="store_true",
+                    help="score with eval/parser_fix.py (variable-letter fix) instead of the upstream verdicts")
     args = ap.parse_args()
+    if args.fixed_parser:
+        os.environ["EDGE_FIXED_PARSER"] = "1"      # for worker processes that re-import strict_score
+        import parser_fix
+        import strict_score
+        parser_fix.apply()
+        strict_score._gold_graph.cache_clear()
     cfg = yaml.safe_load((REPO / "configs" / "gate1_base_eval.yaml").read_text())
     run_dir = args.run_dir or Path(cfg["run_dir"])
     data = Path(os.environ["EDGE_DATA"])
@@ -71,13 +84,16 @@ def main():
         w.writeheader()
         for name, split, root in tasks:
             rows, per_problem, agree = load_task(run_dir, name, root, tok, args.workers, args.ckname)
-            assert agree == 1.0, f"{name}: upstream/ours disagreement {agree}"
+            if args.fixed_parser:
+                print(f"{name}: fixed parser agrees with upstream on {agree:.4f} of samples", flush=True)
+            else:
+                assert agree == 1.0, f"{name}: upstream/ours disagreement {agree}"
             for idx in sorted(per_problem):
                 p, r = per_problem[idx], rows[idx]
                 w.writerow({"split": split, "uid": r.get("uid") or uid(r), "op": r["op"],
                             "template": r.get("template"),
                             "src_line": r.get("src_line", idx if root.is_file() else ""),
-                            "n": p["n"], "c_eval": p["c"], "c_train": p["c_train"], "c_answer": p["c_ans"]})
+                            "n": p["n"], "c_eval": p["c_ours"] if args.fixed_parser else p["c"], "c_train": p["c_train"], "c_answer": p["c_ans"]})
                 total += 1
             print(f"{name}: {len(per_problem)} problems", flush=True)
     print(f"wrote {out} ({total} rows)")
