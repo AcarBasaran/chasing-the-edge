@@ -34,6 +34,13 @@ if str(UPSTREAM) not in sys.path:
 from utils.solution_dependency_graph import DependencyGraphData, SolutionParser  # noqa: E402
 from utils.text_preprocess import compose_text  # noqa: E402
 
+# EDGE_FIXED_PARSER=1: score with the variable-letter fix (eval/parser_fix.py). Default off, so
+# every existing number keeps the paper's (upstream) scorer unless asked.
+if os.environ.get("EDGE_FIXED_PARSER", "0") == "1":
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import parser_fix  # noqa: E402
+    parser_fix.apply()
+
 
 def _load_by_path(name: str, path: Path):
     # verl/reward_fn.py only needs `utils` on sys.path; importing it as part of the
